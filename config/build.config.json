@@ -1,0 +1,118 @@
+{
+  "ts": {
+    "options": {
+      "fast": "never",
+      "target": "es3",
+      "module": "amd",
+      "declaration": false,
+      "failOnTypeErrors": true,
+      "sourceMap": false,
+      "removeComments": false,
+      "compiler": "node_modules/typescript/bin/tsc"
+    },
+    "build": {
+      "files": {
+        "build/streams-client.js": [
+          "src/modules/**/*.ts",
+          "src/templates/**/*.ts",
+          "src/datatypes/**/*.ts",
+          "src/interfaces/**/*.ts",
+          "src/services/**/*.ts",
+          "src/**/*.ts",
+          "typings/tsd.d.ts"
+        ]
+      }
+    },
+    "tests": {
+      "files": {
+        "build/specs.js": [
+          "typings/tsd.d.ts",
+          "test/specs/**/*.ts"
+        ]
+      }
+    }
+  },
+  "connect": {
+    "options": {
+      "port": 9090,
+      "base": "."
+    },
+    "start": {
+    },
+    "keepalive": {
+      "options": {
+        "keepalive": true
+      }
+    },
+    "examples": {
+      "options": {
+        "keepalive": true
+      }
+    }
+  },
+  "copy": {
+    "interfaces": {
+      "expand": true,
+      "cwd": "src/interfaces",
+      "src": "*",
+      "dest": "release/interfaces/",
+      "filter": "isFile"
+    }
+  },
+  "protractor": {
+    "options": {
+      "configFile": "./config/protractor.config.js",
+      "args": {
+        "specs": ["build/test/specs/**/*Spec.js"],
+        "seleniumAddress": "http://localhost:4444/wd/hub",
+        "framework": "jasmine2",
+        "browser": "firefox",
+        "verbose": true
+      }
+    },
+    "default": {
+    }
+  },
+  "uglify": {
+    "options": {
+      "mangle": {
+        "except": [
+          "angular"
+        ]
+      }
+    },
+    "default": {
+      "files": {
+        "release/streams-client.min.js": "release/streams-client.js"
+      }
+    }
+  },
+  "clean": {
+    "build": ["build"],
+    "post-build": ["src/**/*.js", "!src/bootstrap/*.js"]
+  },
+  "wrap-jade": {
+    "default": {
+      "files": [
+        { "src": ["**/*.jade", "!**/_*.jade"], "cwd": "src", "expand": true}
+      ],
+      "output": "src/templates/templates.ts"
+    }
+  },
+  "wrap-module": {
+    "default": {
+      "files": [
+        { "src": "build/streams-client.js", "dest": "release/streams-client.js" }
+      ],
+      "modules": {
+        "angular": "angular",
+        "angular.animate": "",
+        "angular.translate": "",
+        "angular.messages": "",
+        "angular.material": "",
+        "angular.aria": "",
+        "angular.touch": ""
+      }
+    }
+  }
+}
