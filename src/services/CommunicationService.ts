@@ -3,6 +3,7 @@
 ///<reference path="../interfaces/Constants.ts" />
 ///<reference path="../interfaces/IRequest.ts" />
 ///<reference path="../interfaces/IResponse.ts" />
+///<reference path="../modules/StreamsClientModule.ts" />
 
 class CommunicationService implements ICommunicationService {
 
@@ -16,15 +17,20 @@ class CommunicationService implements ICommunicationService {
         this.configuration = configuration;
     }
 
-    getIds(filter?:any, options?:IQueryOptions):angular.IPromise<string[]> {
+    private sendRequest(request: IRequest): angular.IHttpPromise<IResponse> {
+        return this.httpService.post('/' + this.configuration.ConnectionPath, request);
+    }
+
+    getIds(nodeId: string, filter:any, options:IQueryOptions):angular.IPromise<string[]> {
         var request: IRequest = <any>{};
         request.command = Constants.COMMAND_IDS;
+        request.nodeId = nodeId;
         request.filter = filter;
         request.options = options;
 
         var promise = this.qService.defer<string[]>();
 
-        this.httpService.post('/' + this.configuration.ConnectionPath, request).success((response: IResponse) => {
+        this.sendRequest(request).success((response: IResponse) => {
             if (response.ids) {
                 promise.resolve(response.ids);
             } else {
@@ -33,7 +39,11 @@ class CommunicationService implements ICommunicationService {
         }).error((data: any) => {
             promise.reject(data);
         });
+
         return promise.promise;
+    }
+
+    create() {
     }
 }
 

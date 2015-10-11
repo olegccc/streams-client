@@ -14,23 +14,24 @@
       },
       "files": {
         "build/streams-client.js": [
-          "src/**/*.ts"
+          "typings/tsd.d.ts",
+          "src/**/*.ts",
+          "!src/specs/**/*.ts"
         ],
         "build/specs.js": [
-          "test/specs/**/*.ts",
-          "src/reference.d.ts"
+          "typings/tsd.d.ts",
+          "src/specs/**/*.ts"
         ]
       }
     },
     "debug": {
       "options": {
         "fast": "always",
-        "additionalFlags": "\"src/reference.d.ts\""
+        "additionalFlags": "\"typings/tsd.d.ts\""
       },
       "outDir": "build",
       "src": [
-        "src/**/*.ts",
-        "test/**/*.ts"
+        "src/**/*.ts"
       ]
     }
   },
@@ -132,13 +133,13 @@
       "files": [
         { "src": "bower_components/angular/angular.js" },
         { "src": "bower_components/angular-mocks/angular-mocks.js" },
-        { "src": "build/src/interfaces/**/*.js" },
-        { "src": "build/src/templates/**/*.js" },
-        { "src": "build/src/modules/**/*.js" },
-        { "src": "build/src/services/**/*.js" },
-        { "src": "build/src/directives/**/*.js" },
-        { "src": "build/src/controllers/**/*.js" },
-        { "src": "build/test/**/*.js" }
+        { "src": "build/interfaces/**/*.js" },
+        { "src": "build/templates/**/*.js" },
+        { "src": "build/modules/**/*.js" },
+        { "src": "build/services/**/*.js" },
+        { "src": "build/directives/**/*.js" },
+        { "src": "build/controllers/**/*.js" },
+        { "src": "build/specs/**/*.js" }
       ]
     },
     "release": {
@@ -166,8 +167,7 @@
         "atBegin": true
       },
       "files": [
-        "src/**/*.ts",
-        "test/**/*.ts"
+        "src/**/*.ts"
       ],
       "tasks": [
         "ts:debug",

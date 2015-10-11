@@ -1,8 +1,8 @@
-/// <reference path="../../../src/interfaces/ICommunicationService.ts" />
-/// <reference path="../../../src/interfaces/IRequest.ts" />
-/// <reference path="../../../src/interfaces/IConfiguration.ts" />
-/// <reference path="../../../src/interfaces/IResponse.ts" />
-/// <reference path="../../../src/interfaces/Constants.ts" />
+/// <reference path="../../interfaces/ICommunicationService.ts" />
+/// <reference path="../../interfaces/IRequest.ts" />
+/// <reference path="../../interfaces/IConfiguration.ts" />
+/// <reference path="../../interfaces/IResponse.ts" />
+/// <reference path="../../interfaces/Constants.ts" />
 
 describe('Communication Service', () => {
 
@@ -18,7 +18,7 @@ describe('Communication Service', () => {
         });
     }));
 
-    it('should handle ids command', (done) => {
+    it('should handle \'ids\' command', (done) => {
         angular.mock.inject((streamsCommunication: ICommunicationService, $httpBackend: angular.IHttpBackendService) => {
             var request: IRequest;
             $httpBackend.whenPOST('/' + connectionPath).respond((method, url, data: string) => {
@@ -31,13 +31,15 @@ describe('Communication Service', () => {
                 from: 10,
                 count: 10
             };
+            var expectedNodeId = 'nodeId';
 
             expect(streamsCommunication).toBeDefined();
-            streamsCommunication.getIds(expectedFilter, expectedOptions).then((ids: string[]) => {
+            streamsCommunication.getIds(expectedNodeId, expectedFilter, expectedOptions).then((ids: string[]) => {
                 expect(ids).toEqual(['id1']);
                 expect(request.command).toBe(Constants.COMMAND_IDS);
                 expect(request.filter).toEqual(expectedFilter);
                 expect(request.options).toEqual(expectedOptions);
+                expect(request.nodeId).toBe(expectedNodeId);
                 done();
             });
             $httpBackend.flush();
