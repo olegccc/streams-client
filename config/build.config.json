@@ -1,35 +1,37 @@
 {
   "ts": {
     "options": {
-      "fast": "never",
       "target": "es3",
-      "module": "amd",
       "declaration": false,
       "failOnTypeErrors": true,
       "sourceMap": false,
       "removeComments": false,
       "compiler": "node_modules/typescript/bin/tsc"
     },
-    "build": {
+    "release": {
+      "options": {
+        "fast": "never"
+      },
       "files": {
         "build/streams-client.js": [
-          "src/modules/**/*.ts",
-          "src/templates/**/*.ts",
-          "src/datatypes/**/*.ts",
-          "src/interfaces/**/*.ts",
-          "src/services/**/*.ts",
-          "src/**/*.ts",
-          "typings/tsd.d.ts"
+          "src/**/*.ts"
+        ],
+        "build/specs.js": [
+          "test/specs/**/*.ts",
+          "src/reference.d.ts"
         ]
       }
     },
-    "tests": {
-      "files": {
-        "build/specs.js": [
-          "typings/tsd.d.ts",
-          "test/specs/**/*.ts"
-        ]
-      }
+    "debug": {
+      "options": {
+        "fast": "always",
+        "additionalFlags": "\"src/reference.d.ts\""
+      },
+      "outDir": "build",
+      "src": [
+        "src/**/*.ts",
+        "test/**/*.ts"
+      ]
     }
   },
   "connect": {
@@ -89,6 +91,7 @@
   },
   "clean": {
     "build": ["build"],
+    "tscache": [".tscache"],
     "post-build": ["src/**/*.js", "!src/bootstrap/*.js"]
   },
   "wrap-jade": {
@@ -113,6 +116,62 @@
         "angular.aria": "",
         "angular.touch": ""
       }
+    }
+  },
+  "karma": {
+    "options": {
+      "frameworks": [
+        "jasmine"
+      ],
+      "port": 9876,
+      "browsers": [
+        "PhantomJS"
+      ],
+      "singleRun": true
+    },
+    "debug": {
+      "files": [
+        { "src": "bower_components/angular/angular.js" },
+        { "src": "bower_components/angular-mocks/angular-mocks.js" },
+        { "src": "build/src/interfaces/**/*.js" },
+        { "src": "build/src/templates/**/*.js" },
+        { "src": "build/src/modules/**/*.js" },
+        { "src": "build/src/services/**/*.js" },
+        { "src": "build/src/directives/**/*.js" },
+        { "src": "build/src/controllers/**/*.js" },
+        { "src": "build/test/**/*.js" }
+      ]
+    },
+    "release": {
+      "files": [
+        "bower_components/angular/angular.js",
+        "bower_components/angular-mocks/angular-mocks.js",
+        "build/streams-client.js",
+        "build/specs.js"
+      ]
+    }
+  },
+  "watch": {
+    "options": {
+      "atBegin": true
+    },
+    "views": {
+      "files": [
+        "src/**/*.jade"
+      ],
+      "tasks": [
+        "wrap-jade"
+      ]
+    },
+    "typescript": {
+      "files": [
+        "src/**/*.ts",
+        "test/**/*.ts"
+      ],
+      "tasks": [
+        "ts:debug",
+        "karma:debug"
+      ]
     }
   }
 }

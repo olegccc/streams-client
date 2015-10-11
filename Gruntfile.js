@@ -6,14 +6,16 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-ts');
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-clean');
+    grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-protractor-runner');
+    grunt.loadNpmTasks('grunt-karma');
 
-    grunt.config.init(grunt.file.readJSON('config/grunt.config.json'));
+    grunt.config.init(grunt.file.readJSON('config/build.config.json'));
 
     grunt.task.loadTasks('grunt-tasks');
 
-    var configureMiddleware = require('grunt-modules/configureMiddleware');
-    configureMiddleware(grunt, 'connect', null, 'test/views/index.jade');
+    var configureMiddleware = require('./grunt-modules/configureMiddleware');
+    configureMiddleware(grunt, 'connect', null, 'src/index.jade');
 
     grunt.event.once('connect.examples.listening', function(host, port) {
         var url = 'http://localhost:' + port;

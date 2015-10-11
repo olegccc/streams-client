@@ -1,0 +1,3 @@
+interface IConfiguration {
+    ConnectionPath: string;
+}
