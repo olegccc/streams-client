@@ -22,14 +22,14 @@ module.exports = function (grunt) {
         require('open')(url);
     });
 
-    grunt.registerTask('ts-build', ['clean:build', 'wrap-jade', 'ts:build', 'clean:post-build']);
-
-    grunt.registerTask('build', [
-        'ts-build',
+    grunt.registerTask('release', [
+        'clean:build',
+        'wrap-jade',
+        'ts:release',
+        'karma:release',
         'wrap-module',
         'uglify',
-        'copy:interfaces',
-        'ts:tests'
+        'copy:interfaces'
     ]);
 
     grunt.registerTask('view', ['connect:keepalive']);

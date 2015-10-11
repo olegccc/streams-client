@@ -56,7 +56,7 @@
     "interfaces": {
       "expand": true,
       "cwd": "src/interfaces",
-      "src": "*",
+      "src": "I*.js",
       "dest": "release/interfaces/",
       "filter": "isFile"
     }
@@ -91,8 +91,7 @@
   },
   "clean": {
     "build": ["build"],
-    "tscache": [".tscache"],
-    "post-build": ["src/**/*.js", "!src/bootstrap/*.js"]
+    "tscache": [".tscache"]
   },
   "wrap-jade": {
     "default": {
@@ -152,18 +151,20 @@
     }
   },
   "watch": {
-    "options": {
-      "atBegin": true
-    },
     "views": {
       "files": [
         "src/**/*.jade"
       ],
       "tasks": [
-        "wrap-jade"
+        "wrap-jade",
+        "ts:debug",
+        "karma:debug"
       ]
     },
     "typescript": {
+      "options": {
+        "atBegin": true
+      },
       "files": [
         "src/**/*.ts",
         "test/**/*.ts"
