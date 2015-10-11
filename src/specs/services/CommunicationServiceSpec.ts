@@ -18,10 +18,12 @@ describe('Communication Service', () => {
         });
     }));
 
-    it('should handle \'ids\' command', (done) => {
+    it('should read record ids', (done) => {
         angular.mock.inject((streamsCommunication: ICommunicationService, $httpBackend: angular.IHttpBackendService) => {
+
             var request: IRequest;
-            $httpBackend.whenPOST('/' + connectionPath).respond((method, url, data: string) => {
+
+            $httpBackend.expectPOST('/' + connectionPath).respond((method: string, url: string, data: string) => {
                 request = JSON.parse(data);
                 return [200, { ids: ['id1'] }];
             });
@@ -33,7 +35,6 @@ describe('Communication Service', () => {
             };
             var expectedNodeId = 'nodeId';
 
-            expect(streamsCommunication).toBeDefined();
             streamsCommunication.getIds(expectedNodeId, expectedFilter, expectedOptions).then((ids: string[]) => {
                 expect(ids).toEqual(['id1']);
                 expect(request.command).toBe(Constants.COMMAND_IDS);
@@ -42,7 +43,43 @@ describe('Communication Service', () => {
                 expect(request.nodeId).toBe(expectedNodeId);
                 done();
             });
+
             $httpBackend.flush();
+            $httpBackend.verifyNoOutstandingExpectation();
+            $httpBackend.verifyNoOutstandingRequest();
+        });
+    });
+
+    it('should create new record', (done) => {
+        angular.mock.inject((streamsCommunication: ICommunicationService, $httpBackend: angular.IHttpBackendService) => {
+
+            var request: IRequest;
+
+            var expectedId = '100';
+            var expectedFieldValue = 'field1_2';
+            var expectedNodeId = '200';
+
+            $httpBackend.expectPOST('/' + connectionPath).respond((method: string, url: string, data: string) => {
+                request = JSON.parse(data);
+                return [200, {
+                    record: {
+                        id: expectedId,
+                        field1: expectedFieldValue
+                    }
+                }];
+            });
+
+            streamsCommunication.createRecord(expectedNodeId, <any>{
+                field1: 'field1_1'
+            }).then((record: IRecord) => {
+                expect(record.id).toBe(expectedId);
+                expect(record['field1']).toBe(expectedFieldValue);
+                done();
+            });
+
+            $httpBackend.flush();
+            $httpBackend.verifyNoOutstandingExpectation();
+            $httpBackend.verifyNoOutstandingRequest();
         });
     });
 });

@@ -43,7 +43,45 @@ class CommunicationService implements ICommunicationService {
         return promise.promise;
     }
 
-    create() {
+    readRecord(id:string):angular.IPromise<IRecord> {
+        return undefined;
+    }
+
+    updateRecord(nodeId: string, record:IRecord, echo:boolean):angular.IPromise<IRecord> {
+        return undefined;
+    }
+
+    createRecord(nodeId: string, record:IRecord):angular.IPromise<IRecord> {
+        var request: IRequest = <any>{};
+        request.command = Constants.COMMAND_CREATE;
+        request.record = record;
+        request.nodeId = nodeId;
+
+        var promise = this.qService.defer<IRecord>();
+
+        this.sendRequest(request).success((response: IResponse) => {
+            if (response.record) {
+                promise.resolve(response.record);
+            } else {
+                promise.reject();
+            }
+        }).error((data: any) => {
+            promise.reject(data);
+        });
+
+        return promise.promise;
+    }
+
+    deleteRecord(nodeId: string, id:string):angular.IPromise<void> {
+        return undefined;
+    }
+
+    getVersion():angular.IPromise<string> {
+        return undefined;
+    }
+
+    getChanges(version:string):angular.IPromise<IUpdate[]> {
+        return undefined;
     }
 }
 
