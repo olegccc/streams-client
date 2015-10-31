@@ -8,4 +8,8 @@ class Constants {
     static COMMAND_CHANGES: string = "changes";
 
     static CONFIGURATION: string = "streamsConfiguration";
+
+    static UPDATE_DELETED: number = 1;
+    static UPDATE_CREATED: number = 2;
+    static UPDATE_CHANGED: number = 3;
 }

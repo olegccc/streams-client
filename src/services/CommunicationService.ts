@@ -48,7 +48,25 @@ class CommunicationService implements ICommunicationService {
     }
 
     updateRecord(nodeId: string, record:IRecord, echo:boolean):angular.IPromise<IRecord> {
-        return undefined;
+        var request: IRequest = <any>{};
+        request.command = Constants.COMMAND_UPDATE;
+        request.record = record;
+        request.nodeId = nodeId;
+        request.echo = echo;
+
+        var promise = this.qService.defer<IRecord>();
+
+        this.sendRequest(request).success((response: IResponse) => {
+            if (response.record) {
+                promise.resolve(response.record);
+            } else {
+                promise.reject();
+            }
+        }).error((data: any) => {
+            promise.reject(data);
+        });
+
+        return promise.promise;
     }
 
     createRecord(nodeId: string, record:IRecord):angular.IPromise<IRecord> {
@@ -73,15 +91,51 @@ class CommunicationService implements ICommunicationService {
     }
 
     deleteRecord(nodeId: string, id:string):angular.IPromise<void> {
-        return undefined;
+        var request: IRequest = <any>{};
+        request.command = Constants.COMMAND_DELETE;
+        request.id = id;
+        request.nodeId = nodeId;
+
+        var promise = this.qService.defer<void>();
+
+        this.sendRequest(request).success(() => {
+            promise.resolve();
+        }).error((data: any) => {
+            promise.reject(data);
+        });
+
+        return promise.promise;
     }
 
     getVersion():angular.IPromise<string> {
-        return undefined;
+        var request: IRequest = <any>{};
+        request.command = Constants.COMMAND_VERSION;
+
+        var promise = this.qService.defer<string>();
+
+        this.sendRequest(request).success((response: IResponse) => {
+            promise.resolve(response.version);
+        }).error((data: any) => {
+            promise.reject(data);
+        });
+
+        return promise.promise;
     }
 
     getChanges(version:string):angular.IPromise<IUpdate[]> {
-        return undefined;
+        var request: IRequest = <any>{};
+        request.command = Constants.COMMAND_CHANGES;
+        request.version = version;
+
+        var promise = this.qService.defer<IUpdate[]>();
+
+        this.sendRequest(request).success((response: IResponse) => {
+            promise.resolve(response.changes);
+        }).error((data: any) => {
+            promise.reject(data);
+        });
+
+        return promise.promise;
     }
 }
 
