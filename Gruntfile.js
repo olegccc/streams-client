@@ -1,6 +1,4 @@
 module.exports = function (grunt) {
-    var path = require('path');
-    var fs = require('fs');
 
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-ts');
@@ -9,6 +7,7 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-protractor-runner');
     grunt.loadNpmTasks('grunt-karma');
+    grunt.loadNpmTasks('grunt-sync');
 
     grunt.config.init(grunt.file.readJSON('config/build.config.json'));
 
@@ -33,4 +32,6 @@ module.exports = function (grunt) {
     ]);
 
     grunt.registerTask('view', ['connect:keepalive']);
+
+    grunt.registerTask('functional-tests', ['download-selenium-webdriver', 'run-functional-tests'])
 };

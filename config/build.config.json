@@ -1,4 +1,11 @@
 {
+  "selenium_webdriver_file": "selenium-server/selenium-server-standalone-2.48.2.jar",
+  "selenium_webdriver_url": "http://selenium-release.storage.googleapis.com/2.48/selenium-server-standalone-2.48.2.jar",
+  "run-functional-tests": {
+    "path": "build/specs/functional",
+    "mask": "*Spec.js",
+    "initialize": "initialize"
+  },
   "ts": {
     "options": {
       "target": "es3",
@@ -20,7 +27,8 @@
         ],
         "build/specs.js": [
           "typings/tsd.d.ts",
-          "src/specs/**/*.ts"
+          "src/specs/**/*.ts",
+          "!src/specs/functional/**/*.ts"
         ]
       }
     },
@@ -53,6 +61,15 @@
       }
     }
   },
+  "sync": {
+    "javascript": {
+      "files": [{
+        "cwd": "src",
+        "src": ["**/*.js"],
+        "dest": "build"
+      }]
+    }
+  },
   "copy": {
     "interfaces": {
       "expand": true,
@@ -66,14 +83,25 @@
     "options": {
       "configFile": "./config/protractor.config.js",
       "args": {
-        "specs": ["build/test/specs/**/*Spec.js"],
-        "seleniumAddress": "http://localhost:4444/wd/hub",
+        "specs": ["build/specs/functional/**/*Spec.js"],
+        "seleniumServerJar": "<%= selenium_webdriver_file %>",
         "framework": "jasmine2",
-        "browser": "firefox",
+        "browser": "phantomjs",
         "verbose": true
       }
     },
     "default": {
+    }
+  },
+  "protractor_webdriver": {
+    "options": {
+    },
+    "default": {
+    },
+    "update": {
+      "options": {
+        "command": "webdriver-manager update --standalone"
+      }
     }
   },
   "uglify": {
@@ -139,7 +167,7 @@
         { "src": "build/services/**/*.js" },
         { "src": "build/directives/**/*.js" },
         { "src": "build/controllers/**/*.js" },
-        { "src": "build/specs/**/*.js" }
+        { "src": ["build/specs/**/*.js", "!build/specs/functional/**/*.js"] }
       ]
     },
     "release": {
@@ -162,16 +190,25 @@
         "karma:debug"
       ]
     },
-    "typescript": {
+    "specs": {
       "options": {
         "atBegin": true
       },
       "files": [
-        "src/**/*.ts"
+        "src/**/*.{js,ts}"
       ],
       "tasks": [
         "ts:debug",
         "karma:debug"
+      ]
+    },
+    "functional": {
+      "files": [
+        "src/specs/functional/**/*.{js,ts}"
+      ],
+      "tasks": [
+        "sync:javascript",
+        "functional-tests"
       ]
     }
   }
