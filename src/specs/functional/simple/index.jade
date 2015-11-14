@@ -1,0 +1,20 @@
+html
+    head
+        script(src="bower_components/angular/angular.js")
+        script(src="release/streams-client.js")
+    body(ng-app="test" ng-controller="test")
+        div#response(ng-bind="response")
+        div#button
+            button(ng-click="createRecord()") Create Record
+        script.
+            var app = angular.module('test', ['streams-client']);
+            app.controller('test', function($scope, streamsCommunication) {
+                $scope.response = '';
+                $scope.createRecord = function() {
+                    streamsCommunication.createRecord(1, {
+                        test: 'test'
+                    }).then(function(record) {
+                        $scope.response = JSON.stringify(record);
+                    });
+                }
+            });

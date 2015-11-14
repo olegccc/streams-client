@@ -27,6 +27,8 @@
   "author": "olegccc",
   "license": "MPL-2.0",
   "devDependencies": {
+    "body-parser": "^1.14.1",
+    "connect": "^3.4.0",
     "grunt": "^0.4.5",
     "grunt-contrib-clean": "^0.6.0",
     "grunt-contrib-connect": "^0.11.2",
@@ -48,6 +50,7 @@
     "open": "0.0.5",
     "phantomjs": "^1.9.18",
     "protractor": "^2.5.1",
+    "st": "^1.0.0",
     "typescript": "^1.6.2"
   }
 }

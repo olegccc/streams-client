@@ -125,7 +125,7 @@
   "wrap-jade": {
     "default": {
       "files": [
-        { "src": ["**/*.jade", "!**/_*.jade"], "cwd": "src", "expand": true}
+        { "src": ["**/*.jade", "!**/_*.jade", "!specs/**/*.jade"], "cwd": "src", "expand": true}
       ],
       "output": "src/templates/templates.ts"
     }
@@ -172,10 +172,10 @@
     },
     "release": {
       "files": [
-        "bower_components/angular/angular.js",
-        "bower_components/angular-mocks/angular-mocks.js",
-        "build/streams-client.js",
-        "build/specs.js"
+        { "src": "bower_components/angular/angular.js" },
+        { "src": "bower_components/angular-mocks/angular-mocks.js" },
+        { "src": "build/streams-client.js" },
+        { "src": "build/specs.js" }
       ]
     }
   },
