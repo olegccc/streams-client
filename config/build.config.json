@@ -14,7 +14,8 @@
       "failOnTypeErrors": true,
       "sourceMap": false,
       "removeComments": false,
-      "compiler": "node_modules/typescript/bin/tsc"
+      "compiler": "node_modules/typescript/bin/tsc",
+      "fast": "never"
     },
     "build": {
       "options": {

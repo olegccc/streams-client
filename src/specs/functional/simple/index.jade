@@ -14,9 +14,7 @@ html
                     streamsCommunication.createRecord('test', 1, {
                         test: 'test'
                     }).then(function(record) {
-                        $scope.response = JSON.stringify({
-                            record: record
-                        });
+                        $scope.response = JSON.stringify(record);
                     });
                 }
             });

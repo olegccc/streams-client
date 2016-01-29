@@ -17,6 +17,7 @@
 ///<reference path="IQueryOptions.ts" />
 ///<reference path="IRecord.ts" />
 ///<reference path="IUpdate.ts" />
+///<reference path="IUpdates.ts" />
 ///<reference path="IQueryOptions.ts" />
 ///<reference path='IRecord.ts'/>
 ///<reference path='IUpdate.ts'/>
@@ -37,109 +38,114 @@ var CommunicationService = (function () {
         this.qService = qService;
         this.configuration = configuration;
     }
-    CommunicationService.prototype.sendRequest = function (request) {
-        return this.httpService.post('/' + this.configuration.ConnectionPath, request);
+    CommunicationService.prototype.sendRequests = function (requests) {
+        return this.httpService.post('/' + this.configuration.ConnectionPath, requests);
     };
     CommunicationService.prototype.getIds = function (streamId, nodeId, filter, options) {
-        var request = {};
-        request.command = Constants.COMMAND_IDS;
-        request.nodeId = nodeId;
-        request.filter = filter;
-        request.options = options;
-        request.streamId = streamId;
-        var promise = this.qService.defer();
-        this.sendRequest(request).success(function (response) {
-            if (response.ids) {
-                promise.resolve(response.ids);
-            }
-            else {
-                promise.reject();
-            }
-        }).error(function (data) {
-            promise.reject(data);
+        var _this = this;
+        return this.sendRequests([{
+                command: Constants.COMMAND_IDS,
+                nodeId: nodeId,
+                filter: filter,
+                options: options,
+                streamId: streamId
+            }]).then(function (response) {
+            return response.data && response.data.length === 1 && response.data[0].ids ?
+                response.data[0].ids : _this.qService.reject();
         });
-        return promise.promise;
     };
-    CommunicationService.prototype.readRecord = function (streamId, id) {
-        return undefined;
+    CommunicationService.prototype.readRecord = function (streamId, nodeId, id) {
+        var _this = this;
+        return this.sendRequests([{
+                command: Constants.COMMAND_READ,
+                id: id,
+                nodeId: nodeId,
+                streamId: streamId
+            }]).then(function (response) {
+            return response.data && response.data.length === 1 ? response.data[0].record : _this.qService.reject();
+        });
     };
     CommunicationService.prototype.updateRecord = function (streamId, nodeId, record, echo) {
-        var request = {};
-        request.command = Constants.COMMAND_UPDATE;
-        request.record = record;
-        request.nodeId = nodeId;
-        request.echo = echo;
-        request.streamId = streamId;
-        var promise = this.qService.defer();
-        this.sendRequest(request).success(function (response) {
-            if (response.record) {
-                promise.resolve(response.record);
-            }
-            else {
-                promise.reject();
-            }
-        }).error(function (data) {
-            promise.reject(data);
+        var _this = this;
+        return this.sendRequests([{
+                command: Constants.COMMAND_UPDATE,
+                record: record,
+                nodeId: nodeId,
+                echo: echo,
+                streamId: streamId
+            }]).then(function (response) {
+            return response.data && response.data.length === 1 && response.data[0].record ?
+                response.data[0].record : _this.qService.reject();
         });
-        return promise.promise;
     };
     CommunicationService.prototype.createRecord = function (streamId, nodeId, record) {
-        var request = {};
-        request.command = Constants.COMMAND_CREATE;
-        request.record = record;
-        request.nodeId = nodeId;
-        request.streamId = streamId;
-        var promise = this.qService.defer();
-        this.sendRequest(request).success(function (response) {
-            if (response.record) {
-                promise.resolve(response.record);
-            }
-            else {
-                promise.reject();
-            }
-        }).error(function (data) {
-            promise.reject(data);
+        var _this = this;
+        return this.sendRequests([{
+                command: Constants.COMMAND_CREATE,
+                record: record,
+                nodeId: nodeId,
+                streamId: streamId
+            }]).then(function (response) {
+            return response.data && response.data.length === 1 || response.data[0].record ?
+                response.data[0].record : _this.qService.reject();
         });
-        return promise.promise;
     };
     CommunicationService.prototype.deleteRecord = function (streamId, nodeId, id) {
-        var request = {};
-        request.command = Constants.COMMAND_DELETE;
-        request.id = id;
-        request.nodeId = nodeId;
-        request.streamId = streamId;
-        var promise = this.qService.defer();
-        this.sendRequest(request).success(function () {
-            promise.resolve();
-        }).error(function (data) {
-            promise.reject(data);
+        var _this = this;
+        return this.sendRequests([{
+                command: Constants.COMMAND_DELETE,
+                id: id,
+                nodeId: nodeId,
+                streamId: streamId
+            }]).then(function (response) {
+            if (!response.data || response.data.length !== 1) {
+                return _this.qService.reject();
+            }
         });
-        return promise.promise;
     };
     CommunicationService.prototype.getVersion = function (streamId) {
-        var request = {};
-        request.command = Constants.COMMAND_VERSION;
-        request.streamId = streamId;
-        var promise = this.qService.defer();
-        this.sendRequest(request).success(function (response) {
-            promise.resolve(response.version);
-        }).error(function (data) {
-            promise.reject(data);
+        var _this = this;
+        return this.sendRequests([{
+                command: Constants.COMMAND_VERSION,
+                streamId: streamId
+            }]).then(function (response) {
+            return response.data && response.data.length === 1 ? response.data[0].version : _this.qService.reject();
         });
-        return promise.promise;
     };
-    CommunicationService.prototype.getChanges = function (streamId, version) {
-        var request = {};
-        request.command = Constants.COMMAND_CHANGES;
-        request.version = version;
-        request.streamId = streamId;
-        var promise = this.qService.defer();
-        this.sendRequest(request).success(function (response) {
-            promise.resolve(response.changes);
-        }).error(function (data) {
-            promise.reject(data);
+    CommunicationService.prototype.getOneStreamChanges = function (streamId, version) {
+        var _this = this;
+        return this.sendRequests([{
+                command: Constants.COMMAND_CHANGES,
+                version: version,
+                streamId: streamId
+            }]).then(function (response) {
+            return response.data && response.data.length === 1 ? response.data[0].changes : _this.qService.reject();
         });
-        return promise.promise;
+    };
+    CommunicationService.prototype.getManyStreamsChanges = function (streamsAndVersions) {
+        var _this = this;
+        var requests = [];
+        var keys = Object.keys(streamsAndVersions);
+        for (var i = 0; i < keys.length; i++) {
+            requests.push({
+                command: Constants.COMMAND_CHANGES,
+                version: streamsAndVersions[keys[i]],
+                streamId: keys[i]
+            });
+        }
+        return this.sendRequests(requests).then(function (response) {
+            if (!response.data) {
+                return _this.qService.reject();
+            }
+            var responses = [];
+            for (var i = 0; i < response.data.length; i++) {
+                responses.push({
+                    streamId: response.data[i].streamId,
+                    updates: response.data[i].changes
+                });
+            }
+            return responses;
+        });
     };
     return CommunicationService;
 })();

@@ -5,6 +5,9 @@
 ///<reference path="../interfaces/IResponse.ts" />
 ///<reference path="../modules/StreamsClientModule.ts" />
 
+import IHttpPromise = angular.IHttpPromise;
+import IHttpPromiseCallbackArg = angular.IHttpPromiseCallbackArg;
+
 class CommunicationService implements ICommunicationService {
 
     private httpService: ng.IHttpService;
@@ -12,136 +15,135 @@ class CommunicationService implements ICommunicationService {
     private configuration: IConfiguration;
 
     constructor(httpService: ng.IHttpService, qService: ng.IQService, configuration: IConfiguration) {
+
         this.httpService = httpService;
         this.qService = qService;
         this.configuration = configuration;
     }
 
-    private sendRequest(request: IRequest): angular.IHttpPromise<IResponse> {
-        return this.httpService.post('/' + this.configuration.ConnectionPath, request);
+    private sendRequests(requests: IRequest[]): angular.IHttpPromise<IResponse[]> {
+
+        return this.httpService.post('/' + this.configuration.ConnectionPath, requests);
     }
 
     getIds(streamId: string, nodeId: string, filter:any, options:IQueryOptions):angular.IPromise<string[]> {
-        var request: IRequest = <any>{};
-        request.command = Constants.COMMAND_IDS;
-        request.nodeId = nodeId;
-        request.filter = filter;
-        request.options = options;
-        request.streamId = streamId;
 
-        var promise = this.qService.defer<string[]>();
-
-        this.sendRequest(request).success((response: IResponse) => {
-            if (response.ids) {
-                promise.resolve(response.ids);
-            } else {
-                promise.reject();
-            }
-        }).error((data: any) => {
-            promise.reject(data);
+        return this.sendRequests([<IRequest>{
+            command: Constants.COMMAND_IDS,
+            nodeId: nodeId,
+            filter: filter,
+            options: options,
+            streamId: streamId
+        }]).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
+            return response.data && response.data.length === 1 && response.data[0].ids ?
+                response.data[0].ids : this.qService.reject();
         });
-
-        return promise.promise;
     }
 
-    readRecord(streamId: string, id:string):angular.IPromise<IRecord> {
-        return undefined;
+    readRecord(streamId: string, nodeId: string, id:string):angular.IPromise<IRecord> {
+
+        return this.sendRequests([<IRequest>{
+            command: Constants.COMMAND_READ,
+            id: id,
+            nodeId: nodeId,
+            streamId: streamId
+        }]).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
+            return response.data && response.data.length === 1 ? response.data[0].record : this.qService.reject();
+        });
     }
 
     updateRecord(streamId: string, nodeId: string, record:IRecord, echo:boolean):angular.IPromise<IRecord> {
-        var request: IRequest = <any>{};
-        request.command = Constants.COMMAND_UPDATE;
-        request.record = record;
-        request.nodeId = nodeId;
-        request.echo = echo;
-        request.streamId = streamId;
 
-        var promise = this.qService.defer<IRecord>();
+        return this.sendRequests([<IRequest>{
+            command: Constants.COMMAND_UPDATE,
+            record: record,
+            nodeId: nodeId,
+            echo: echo,
+            streamId: streamId
+        }]).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
+            return response.data && response.data.length === 1 && response.data[0].record ?
+                response.data[0].record : this.qService.reject();
+        });
+    }
 
-        this.sendRequest(request).success((response: IResponse) => {
-            if (response.record) {
-                promise.resolve(response.record);
-            } else {
-                promise.reject();
+    createRecord(streamId: string, nodeId: string, record:IRecord) : angular.IPromise<IRecord> {
+
+        return this.sendRequests([<IRequest>{
+            command: Constants.COMMAND_CREATE,
+            record: record,
+            nodeId: nodeId,
+            streamId: streamId
+        }]).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
+            return response.data && response.data.length === 1 || response.data[0].record ?
+                response.data[0].record : this.qService.reject();
+        });
+    }
+
+    deleteRecord(streamId: string, nodeId: string, id:string) : angular.IPromise<void> {
+
+        return this.sendRequests([<IRequest>{
+            command: Constants.COMMAND_DELETE,
+            id: id,
+            nodeId: nodeId,
+            streamId: streamId
+        }]).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
+            if (!response.data || response.data.length !== 1) {
+                return this.qService.reject();
             }
-        }).error((data: any) => {
-            promise.reject(data);
         });
-
-        return promise.promise;
     }
 
-    createRecord(streamId: string, nodeId: string, record:IRecord):angular.IPromise<IRecord> {
-        var request: IRequest = <any>{};
-        request.command = Constants.COMMAND_CREATE;
-        request.record = record;
-        request.nodeId = nodeId;
-        request.streamId = streamId;
+    getVersion(streamId: string) : angular.IPromise<string> {
 
-        var promise = this.qService.defer<IRecord>();
+        return this.sendRequests([<IRequest>{
+            command: Constants.COMMAND_VERSION,
+            streamId: streamId
+        }]).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
+            return response.data && response.data.length === 1 ? response.data[0].version : this.qService.reject();
+        });
+    }
 
-        this.sendRequest(request).success((response: IResponse) => {
-            if (response.record) {
-                promise.resolve(response.record);
-            } else {
-                promise.reject();
+    getOneStreamChanges(streamId: string, version:string) : angular.IPromise<IUpdate[]> {
+
+        return this.sendRequests([<IRequest>{
+            command: Constants.COMMAND_CHANGES,
+            version: version,
+            streamId: streamId
+        }]).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
+            return response.data && response.data.length === 1 ? response.data[0].changes : this.qService.reject();
+        });
+    }
+
+    getManyStreamsChanges(streamsAndVersions:{}) : angular.IPromise<IUpdates[]> {
+
+        var requests: IRequest[] = [];
+        var keys = Object.keys(streamsAndVersions);
+
+        for (var i = 0; i < keys.length; i++) {
+            requests.push(<IRequest>{
+                command: Constants.COMMAND_CHANGES,
+                version: streamsAndVersions[keys[i]],
+                streamId: keys[i]
+            });
+        }
+
+        return this.sendRequests(requests).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
+
+            if (!response.data) {
+                return this.qService.reject();
             }
-        }).error((data: any) => {
-            promise.reject(data);
+
+            var responses: IUpdates[] = [];
+
+            for (var i = 0; i < response.data.length; i++) {
+                responses.push(<IUpdates>{
+                    streamId: response.data[i].streamId,
+                    updates: response.data[i].changes
+                });
+            }
+
+            return responses;
         });
-
-        return promise.promise;
-    }
-
-    deleteRecord(streamId: string, nodeId: string, id:string):angular.IPromise<void> {
-        var request: IRequest = <any>{};
-        request.command = Constants.COMMAND_DELETE;
-        request.id = id;
-        request.nodeId = nodeId;
-        request.streamId = streamId;
-
-        var promise = this.qService.defer<void>();
-
-        this.sendRequest(request).success(() => {
-            promise.resolve();
-        }).error((data: any) => {
-            promise.reject(data);
-        });
-
-        return promise.promise;
-    }
-
-    getVersion(streamId: string):angular.IPromise<string> {
-        var request: IRequest = <any>{};
-        request.command = Constants.COMMAND_VERSION;
-        request.streamId = streamId;
-
-        var promise = this.qService.defer<string>();
-
-        this.sendRequest(request).success((response: IResponse) => {
-            promise.resolve(response.version);
-        }).error((data: any) => {
-            promise.reject(data);
-        });
-
-        return promise.promise;
-    }
-
-    getChanges(streamId: string, version:string):angular.IPromise<IUpdate[]> {
-        var request: IRequest = <any>{};
-        request.command = Constants.COMMAND_CHANGES;
-        request.version = version;
-        request.streamId = streamId;
-
-        var promise = this.qService.defer<IUpdate[]>();
-
-        this.sendRequest(request).success((response: IResponse) => {
-            promise.resolve(response.changes);
-        }).error((data: any) => {
-            promise.reject(data);
-        });
-
-        return promise.promise;
     }
 }
 

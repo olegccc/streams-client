@@ -26,7 +26,7 @@ app.use('/streams', function(request, response) {
 
     console.log('request: ', request.body);
 
-    streamHandler.processRequest(request.body, null, function(error, handlerResponse) {
+    streamHandler.processRequests(request.body, null, function(error, handlerResponse) {
 
         console.log('response: ', handlerResponse);
         console.log('error: ', error);

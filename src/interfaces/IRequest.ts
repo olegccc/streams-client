@@ -9,7 +9,7 @@ interface IRequest {
     filter: any;
     options: IQueryOptions;
     version: string;
-    nodeId?: string;
+    nodeId: string;
     rights: { [key: string]: boolean};
     access: { [key: string]: boolean};
 }

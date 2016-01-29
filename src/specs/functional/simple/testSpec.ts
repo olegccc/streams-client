@@ -1,4 +1,4 @@
-///<reference path="../../../interfaces/IResponse.ts" />
+///<reference path="../../../interfaces/IRecord.ts" />
 
 describe('TestSpec', function() {
     it('Simple test', function(done) {
@@ -12,10 +12,10 @@ describe('TestSpec', function() {
                     console.log('response: ', responseText);
 
                     expect(responseText.length).toBeGreaterThan(0);
-                    var response = <IResponse> JSON.parse(responseText);
+                    var response = <IRecord> JSON.parse(responseText);
 
                     expect(response).toBeDefined();
-                    expect(response.record.id).toBeDefined();
+                    expect(response.id).toBeDefined();
 
                     done();
                 });
