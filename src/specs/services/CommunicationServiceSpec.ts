@@ -34,13 +34,15 @@ describe('Communication Service', () => {
                 count: 10
             };
             var expectedNodeId = 'nodeId';
+            var expectedStreamId = 'test';
 
-            streamsCommunication.getIds(expectedNodeId, expectedFilter, expectedOptions).then((ids: string[]) => {
+            streamsCommunication.getIds(expectedStreamId, expectedNodeId, expectedFilter, expectedOptions).then((ids: string[]) => {
                 expect(ids).toEqual(['id1']);
                 expect(request.command).toBe(Constants.COMMAND_IDS);
                 expect(request.filter).toEqual(expectedFilter);
                 expect(request.options).toEqual(expectedOptions);
                 expect(request.nodeId).toBe(expectedNodeId);
+                expect(request.streamId).toBe(expectedStreamId);
                 done();
             });
 
@@ -58,6 +60,7 @@ describe('Communication Service', () => {
             var expectedId = '100';
             var expectedFieldValue = 'field1_2';
             var expectedNodeId = '200';
+            var expectedStreamId = 'stream1';
 
             $httpBackend.expectPOST('/' + connectionPath).respond((method: string, url: string, data: string) => {
                 request = JSON.parse(data);
@@ -73,10 +76,11 @@ describe('Communication Service', () => {
                 field1: 'field1_1'
             };
 
-            streamsCommunication.createRecord(expectedNodeId, recordToCreate).then((record: IRecord) => {
+            streamsCommunication.createRecord(expectedStreamId, expectedNodeId, recordToCreate).then((record: IRecord) => {
                 expect(request.command).toBe(Constants.COMMAND_CREATE);
                 expect(request.record).toEqual(recordToCreate);
                 expect(request.nodeId).toBe(expectedNodeId);
+                expect(request.streamId).toBe(expectedStreamId);
                 expect(record.id).toBe(expectedId);
                 expect(record['field1']).toBe(expectedFieldValue);
                 done();
@@ -96,6 +100,7 @@ describe('Communication Service', () => {
             var expectedId = '100';
             var expectedFieldValue = 'field1_2';
             var expectedNodeId = '200';
+            var expectedStreamId = 'stream2';
 
             $httpBackend.expectPOST('/' + connectionPath).respond((method: string, url: string, data: string) => {
                 request = JSON.parse(data);
@@ -111,11 +116,12 @@ describe('Communication Service', () => {
                 field1: 'field1_1'
             };
 
-            streamsCommunication.updateRecord(expectedNodeId, recordToUpdate, true).then((record: IRecord) => {
+            streamsCommunication.updateRecord(expectedStreamId, expectedNodeId, recordToUpdate, true).then((record: IRecord) => {
                 expect(request.command).toBe(Constants.COMMAND_UPDATE);
                 expect(request.record).toEqual(recordToUpdate);
                 expect(request.nodeId).toBe(expectedNodeId);
                 expect(request.echo).toBeTruthy();
+                expect(request.streamId).toBe(expectedStreamId);
                 expect(record.id).toBe(expectedId);
                 expect(record['field1']).toBe(expectedFieldValue);
                 done();
@@ -139,11 +145,13 @@ describe('Communication Service', () => {
 
             var expectedNodeId = "10";
             var expectedRecordId = "20";
+            var expectedStreamId = "stream3";
 
-            streamsCommunication.deleteRecord(expectedNodeId, expectedRecordId).then(() => {
+            streamsCommunication.deleteRecord(expectedStreamId, expectedNodeId, expectedRecordId).then(() => {
                 expect(request.command).toBe(Constants.COMMAND_DELETE);
                 expect(request.nodeId).toBe(expectedNodeId);
                 expect(request.id).toBe(expectedRecordId);
+                expect(request.streamId).toBe(expectedStreamId);
                 done();
             });
 
@@ -158,6 +166,7 @@ describe('Communication Service', () => {
 
             var request: IRequest;
             var expectedVersion = '150';
+            var expectedStreamId = 'stream4';
 
             $httpBackend.expectPOST('/' + connectionPath).respond((method: string, url: string, data: string) => {
                 request = JSON.parse(data);
@@ -166,9 +175,10 @@ describe('Communication Service', () => {
                 }];
             });
 
-            streamsCommunication.getVersion().then((version: string) => {
+            streamsCommunication.getVersion(expectedStreamId).then((version: string) => {
                 expect(version).toBe(expectedVersion);
                 expect(request.command).toBe(Constants.COMMAND_VERSION);
+                expect(request.streamId).toBe(expectedStreamId);
                 done();
             });
 
@@ -186,6 +196,7 @@ describe('Communication Service', () => {
             var expectedChangeType = Constants.UPDATE_CREATED;
             var expectedVersion = 'xxx';
             var requestedVersion = 'yyy';
+            var expectedStreamId = 'stream5';
 
             $httpBackend.expectPOST('/' + connectionPath).respond((method: string, url: string, data: string) => {
                 request = JSON.parse(data);
@@ -200,9 +211,10 @@ describe('Communication Service', () => {
                 }];
             });
 
-            streamsCommunication.getChanges(requestedVersion).then((updates: IUpdate[]) => {
+            streamsCommunication.getChanges(expectedStreamId, requestedVersion).then((updates: IUpdate[]) => {
                 expect(request.version).toBe(requestedVersion);
                 expect(request.command).toBe(Constants.COMMAND_CHANGES);
+                expect(request.streamId).toBe(expectedStreamId);
                 expect(updates.length).toBe(1);
                 expect(updates[0].type).toBe(expectedChangeType);
                 expect(updates[0].id).toBe(expectedChangeId);

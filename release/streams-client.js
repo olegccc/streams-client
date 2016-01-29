@@ -40,12 +40,13 @@ var CommunicationService = (function () {
     CommunicationService.prototype.sendRequest = function (request) {
         return this.httpService.post('/' + this.configuration.ConnectionPath, request);
     };
-    CommunicationService.prototype.getIds = function (nodeId, filter, options) {
+    CommunicationService.prototype.getIds = function (streamId, nodeId, filter, options) {
         var request = {};
         request.command = Constants.COMMAND_IDS;
         request.nodeId = nodeId;
         request.filter = filter;
         request.options = options;
+        request.streamId = streamId;
         var promise = this.qService.defer();
         this.sendRequest(request).success(function (response) {
             if (response.ids) {
@@ -59,15 +60,16 @@ var CommunicationService = (function () {
         });
         return promise.promise;
     };
-    CommunicationService.prototype.readRecord = function (id) {
+    CommunicationService.prototype.readRecord = function (streamId, id) {
         return undefined;
     };
-    CommunicationService.prototype.updateRecord = function (nodeId, record, echo) {
+    CommunicationService.prototype.updateRecord = function (streamId, nodeId, record, echo) {
         var request = {};
         request.command = Constants.COMMAND_UPDATE;
         request.record = record;
         request.nodeId = nodeId;
         request.echo = echo;
+        request.streamId = streamId;
         var promise = this.qService.defer();
         this.sendRequest(request).success(function (response) {
             if (response.record) {
@@ -81,11 +83,12 @@ var CommunicationService = (function () {
         });
         return promise.promise;
     };
-    CommunicationService.prototype.createRecord = function (nodeId, record) {
+    CommunicationService.prototype.createRecord = function (streamId, nodeId, record) {
         var request = {};
         request.command = Constants.COMMAND_CREATE;
         request.record = record;
         request.nodeId = nodeId;
+        request.streamId = streamId;
         var promise = this.qService.defer();
         this.sendRequest(request).success(function (response) {
             if (response.record) {
@@ -99,11 +102,12 @@ var CommunicationService = (function () {
         });
         return promise.promise;
     };
-    CommunicationService.prototype.deleteRecord = function (nodeId, id) {
+    CommunicationService.prototype.deleteRecord = function (streamId, nodeId, id) {
         var request = {};
         request.command = Constants.COMMAND_DELETE;
         request.id = id;
         request.nodeId = nodeId;
+        request.streamId = streamId;
         var promise = this.qService.defer();
         this.sendRequest(request).success(function () {
             promise.resolve();
@@ -112,9 +116,10 @@ var CommunicationService = (function () {
         });
         return promise.promise;
     };
-    CommunicationService.prototype.getVersion = function () {
+    CommunicationService.prototype.getVersion = function (streamId) {
         var request = {};
         request.command = Constants.COMMAND_VERSION;
+        request.streamId = streamId;
         var promise = this.qService.defer();
         this.sendRequest(request).success(function (response) {
             promise.resolve(response.version);
@@ -123,10 +128,11 @@ var CommunicationService = (function () {
         });
         return promise.promise;
     };
-    CommunicationService.prototype.getChanges = function (version) {
+    CommunicationService.prototype.getChanges = function (streamId, version) {
         var request = {};
         request.command = Constants.COMMAND_CHANGES;
         request.version = version;
+        request.streamId = streamId;
         var promise = this.qService.defer();
         this.sendRequest(request).success(function (response) {
             promise.resolve(response.changes);

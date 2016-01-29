@@ -1,7 +1,7 @@
 html
     head
         script(src="bower_components/angular/angular.js")
-        script(src="release/streams-client.js")
+        script(src="streams-client.js")
     body(ng-app="test" ng-controller="test")
         div#response(ng-bind="response")
         div#button
@@ -11,10 +11,12 @@ html
             app.controller('test', function($scope, streamsCommunication) {
                 $scope.response = '';
                 $scope.createRecord = function() {
-                    streamsCommunication.createRecord(1, {
+                    streamsCommunication.createRecord('test', 1, {
                         test: 'test'
                     }).then(function(record) {
-                        $scope.response = JSON.stringify(record);
+                        $scope.response = JSON.stringify({
+                            record: record
+                        });
                     });
                 }
             });

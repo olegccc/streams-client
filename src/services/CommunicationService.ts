@@ -21,12 +21,13 @@ class CommunicationService implements ICommunicationService {
         return this.httpService.post('/' + this.configuration.ConnectionPath, request);
     }
 
-    getIds(nodeId: string, filter:any, options:IQueryOptions):angular.IPromise<string[]> {
+    getIds(streamId: string, nodeId: string, filter:any, options:IQueryOptions):angular.IPromise<string[]> {
         var request: IRequest = <any>{};
         request.command = Constants.COMMAND_IDS;
         request.nodeId = nodeId;
         request.filter = filter;
         request.options = options;
+        request.streamId = streamId;
 
         var promise = this.qService.defer<string[]>();
 
@@ -43,16 +44,17 @@ class CommunicationService implements ICommunicationService {
         return promise.promise;
     }
 
-    readRecord(id:string):angular.IPromise<IRecord> {
+    readRecord(streamId: string, id:string):angular.IPromise<IRecord> {
         return undefined;
     }
 
-    updateRecord(nodeId: string, record:IRecord, echo:boolean):angular.IPromise<IRecord> {
+    updateRecord(streamId: string, nodeId: string, record:IRecord, echo:boolean):angular.IPromise<IRecord> {
         var request: IRequest = <any>{};
         request.command = Constants.COMMAND_UPDATE;
         request.record = record;
         request.nodeId = nodeId;
         request.echo = echo;
+        request.streamId = streamId;
 
         var promise = this.qService.defer<IRecord>();
 
@@ -69,11 +71,12 @@ class CommunicationService implements ICommunicationService {
         return promise.promise;
     }
 
-    createRecord(nodeId: string, record:IRecord):angular.IPromise<IRecord> {
+    createRecord(streamId: string, nodeId: string, record:IRecord):angular.IPromise<IRecord> {
         var request: IRequest = <any>{};
         request.command = Constants.COMMAND_CREATE;
         request.record = record;
         request.nodeId = nodeId;
+        request.streamId = streamId;
 
         var promise = this.qService.defer<IRecord>();
 
@@ -90,11 +93,12 @@ class CommunicationService implements ICommunicationService {
         return promise.promise;
     }
 
-    deleteRecord(nodeId: string, id:string):angular.IPromise<void> {
+    deleteRecord(streamId: string, nodeId: string, id:string):angular.IPromise<void> {
         var request: IRequest = <any>{};
         request.command = Constants.COMMAND_DELETE;
         request.id = id;
         request.nodeId = nodeId;
+        request.streamId = streamId;
 
         var promise = this.qService.defer<void>();
 
@@ -107,9 +111,10 @@ class CommunicationService implements ICommunicationService {
         return promise.promise;
     }
 
-    getVersion():angular.IPromise<string> {
+    getVersion(streamId: string):angular.IPromise<string> {
         var request: IRequest = <any>{};
         request.command = Constants.COMMAND_VERSION;
+        request.streamId = streamId;
 
         var promise = this.qService.defer<string>();
 
@@ -122,10 +127,11 @@ class CommunicationService implements ICommunicationService {
         return promise.promise;
     }
 
-    getChanges(version:string):angular.IPromise<IUpdate[]> {
+    getChanges(streamId: string, version:string):angular.IPromise<IUpdate[]> {
         var request: IRequest = <any>{};
         request.command = Constants.COMMAND_CHANGES;
         request.version = version;
+        request.streamId = streamId;
 
         var promise = this.qService.defer<IUpdate[]>();
 

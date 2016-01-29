@@ -28,6 +28,7 @@ module.exports = function(grunt) {
     });
 
     grunt.registerTask('run-functional-test', function(testPath) {
+
         var config = grunt.config('run-functional-tests');
 
         var args = grunt.config('protractor.options.args');
@@ -49,8 +50,10 @@ module.exports = function(grunt) {
         var done = this.async();
         var config = grunt.config('run-functional-tests');
         var tasks = [];
+        grunt.log.debug('Scanning dir ' + config.path);
         fs.readdir(config.path, function(err, files) {
             if (err) {
+                grunt.log.error(err);
                 done();
                 return;
             }

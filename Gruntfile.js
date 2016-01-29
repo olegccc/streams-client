@@ -5,6 +5,7 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-watch');
+    grunt.loadNpmTasks('grunt-contrib-jade');
     grunt.loadNpmTasks('grunt-protractor-runner');
     grunt.loadNpmTasks('grunt-karma');
     grunt.loadNpmTasks('grunt-sync');
@@ -21,17 +22,23 @@ module.exports = function (grunt) {
         require('open')(url);
     });
 
-    grunt.registerTask('release', [
-        'clean:build',
+    grunt.registerTask('refresh-build', [
+        'build-functional-specs',
         'wrap-jade',
-        'ts:release',
-        'karma:release',
+        'ts:build',
+        'jade:tests',
+        'sync:build'
+    ]);
+
+    grunt.registerTask('build', [
+        'clean:build',
+        'refresh-build',
+        'karma:build',
         'wrap-module',
-        'uglify',
-        'copy:interfaces'
+        'uglify'
     ]);
 
     grunt.registerTask('view', ['connect:keepalive']);
 
-    grunt.registerTask('functional-tests', ['download-selenium-webdriver', 'run-functional-tests'])
+    grunt.registerTask('functional-tests', ['download-selenium-webdriver', 'run-functional-tests']);
 };

@@ -3,7 +3,8 @@
   "selenium_webdriver_url": "http://selenium-release.storage.googleapis.com/2.48/selenium-server-standalone-2.48.2.jar",
   "run-functional-tests": {
     "path": "build/specs/functional",
-    "mask": "*Spec.js",
+    "src": "src/specs/functional",
+    "mask": "specs.js",
     "initialize": "initialize"
   },
   "ts": {
@@ -15,7 +16,7 @@
       "removeComments": false,
       "compiler": "node_modules/typescript/bin/tsc"
     },
-    "release": {
+    "build": {
       "options": {
         "fast": "never"
       },
@@ -31,16 +32,6 @@
           "!src/specs/functional/**/*.ts"
         ]
       }
-    },
-    "debug": {
-      "options": {
-        "fast": "always",
-        "additionalFlags": "\"typings/tsd.d.ts\""
-      },
-      "outDir": "build",
-      "src": [
-        "src/**/*.ts"
-      ]
     }
   },
   "connect": {
@@ -62,21 +53,19 @@
     }
   },
   "sync": {
-    "javascript": {
+    "build": {
       "files": [{
-        "cwd": "src",
+        "expand": true,
+        "cwd": "src/specs",
         "src": ["**/*.js"],
-        "dest": "build"
+        "dest": "build/specs"
+      }, {
+        "expand": true,
+        "cwd": "src/interfaces",
+        "src": ["I*.js"],
+        "dest": "release/interfaces",
+        "filter": "isFile"
       }]
-    }
-  },
-  "copy": {
-    "interfaces": {
-      "expand": true,
-      "cwd": "src/interfaces",
-      "src": "I*.js",
-      "dest": "release/interfaces/",
-      "filter": "isFile"
     }
   },
   "protractor": {
@@ -157,20 +146,7 @@
       ],
       "singleRun": true
     },
-    "debug": {
-      "files": [
-        { "src": "bower_components/angular/angular.js" },
-        { "src": "bower_components/angular-mocks/angular-mocks.js" },
-        { "src": "build/interfaces/**/*.js" },
-        { "src": "build/templates/**/*.js" },
-        { "src": "build/modules/**/*.js" },
-        { "src": "build/services/**/*.js" },
-        { "src": "build/directives/**/*.js" },
-        { "src": "build/controllers/**/*.js" },
-        { "src": ["build/specs/**/*.js", "!build/specs/functional/**/*.js"] }
-      ]
-    },
-    "release": {
+    "build": {
       "files": [
         { "src": "bower_components/angular/angular.js" },
         { "src": "bower_components/angular-mocks/angular-mocks.js" },
@@ -185,9 +161,7 @@
         "src/**/*.jade"
       ],
       "tasks": [
-        "wrap-jade",
-        "ts:debug",
-        "karma:debug"
+        "refresh-build"
       ]
     },
     "specs": {
@@ -198,8 +172,8 @@
         "src/**/*.{js,ts}"
       ],
       "tasks": [
-        "ts:debug",
-        "karma:debug"
+        "refresh-build",
+        "karma:build"
       ]
     },
     "functional": {
@@ -207,8 +181,21 @@
         "src/specs/functional/**/*.{js,ts}"
       ],
       "tasks": [
-        "sync:javascript",
+        "refresh-build",
         "functional-tests"
+      ]
+    }
+  },
+  "jade": {
+    "tests": {
+      "files": [
+        {
+          "expand": true,
+          "cwd": "src/specs",
+          "src": ["**/*.jade"],
+          "dest": "build/specs",
+          "ext": ".html"
+        }
       ]
     }
   }

@@ -9,7 +9,7 @@
       "commit": "3fc1377ce29dd9670975cb68615edf1b819fc4a5"
     },
     "jquery/jquery.d.ts": {
-      "commit": "3fc1377ce29dd9670975cb68615edf1b819fc4a5"
+      "commit": "1da639a106527e0c4010b354a1efe52a3059a291"
     },
     "angular-material/angular-material.d.ts": {
       "commit": "3fc1377ce29dd9670975cb68615edf1b819fc4a5"
@@ -22,6 +22,12 @@
     },
     "angularjs/angular-mocks.d.ts": {
       "commit": "3fc1377ce29dd9670975cb68615edf1b819fc4a5"
+    },
+    "angular-protractor/angular-protractor.d.ts": {
+      "commit": "1da639a106527e0c4010b354a1efe52a3059a291"
+    },
+    "selenium-webdriver/selenium-webdriver.d.ts": {
+      "commit": "1da639a106527e0c4010b354a1efe52a3059a291"
     }
   }
 }

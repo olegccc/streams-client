@@ -3,11 +3,11 @@
 ///<reference path="IUpdate.ts" />
 
 interface ICommunicationService {
-    getIds(nodeId: string, filter: any, options: IQueryOptions): angular.IPromise<string[]>;
-    readRecord(nodeId: string, id: string): angular.IPromise<IRecord>;
-    updateRecord(nodeId: string, record: IRecord, echo: boolean): angular.IPromise<IRecord>;
-    createRecord(nodeId: string, record: IRecord): angular.IPromise<IRecord>;
-    deleteRecord(nodeId: string, id: string): angular.IPromise<void>;
-    getVersion(): angular.IPromise<string>;
-    getChanges(version: string): angular.IPromise<IUpdate[]>;
+    getIds(streamId: string, nodeId: string, filter: any, options: IQueryOptions): angular.IPromise<string[]>;
+    readRecord(streamId: string, nodeId: string, id: string): angular.IPromise<IRecord>;
+    updateRecord(streamId: string, nodeId: string, record: IRecord, echo: boolean): angular.IPromise<IRecord>;
+    createRecord(streamId: string, nodeId: string, record: IRecord): angular.IPromise<IRecord>;
+    deleteRecord(streamId: string, nodeId: string, id: string): angular.IPromise<void>;
+    getVersion(streamId: string): angular.IPromise<string>;
+    getChanges(streamId: string, version: string): angular.IPromise<IUpdate[]>;
 }
