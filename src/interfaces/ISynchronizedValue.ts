@@ -1,0 +1,3 @@
+interface ISynchronizedValue {
+    id: any;
+}
