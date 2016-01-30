@@ -21,12 +21,12 @@ class CommunicationService implements ICommunicationService {
         this.configuration = configuration;
     }
 
-    private sendRequests(requests: IRequest[]): angular.IHttpPromise<IResponse[]> {
+    private sendRequests(requests: IRequest[]): Promise<IResponse[]> {
 
-        return this.httpService.post('/' + this.configuration.ConnectionPath, requests);
+        return <Promise<IResponse[]>> this.httpService.post('/' + this.configuration.ConnectionPath, requests);
     }
 
-    getIds(streamId: string, nodeId: string, filter:any, options:IQueryOptions):angular.IPromise<string[]> {
+    getIds(streamId: string, nodeId: string, filter:any, options:IQueryOptions) : Promise<string[]> {
 
         return this.sendRequests([<IRequest>{
             command: Constants.COMMAND_IDS,
@@ -40,7 +40,7 @@ class CommunicationService implements ICommunicationService {
         });
     }
 
-    readRecord(streamId: string, nodeId: string, id:string):angular.IPromise<IRecord> {
+    readRecord(streamId: string, nodeId: string, id:string) : Promise<IRecord> {
 
         return this.sendRequests([<IRequest>{
             command: Constants.COMMAND_READ,
@@ -52,7 +52,34 @@ class CommunicationService implements ICommunicationService {
         });
     }
 
-    updateRecord(streamId: string, nodeId: string, record:IRecord, echo:boolean):angular.IPromise<IRecord> {
+    readRecords(streamId: string, nodeId: string, ids: string[]) : Promise<IRecord[]> {
+
+        var requests: IRequest[] = [];
+
+        for (var i = 0; i < ids.length; i++) {
+            requests.push(<IRequest>{
+                command: Constants.COMMAND_READ,
+                id: ids[i],
+                nodeId: nodeId,
+                streamId: streamId
+            });
+        }
+
+        return this.sendRequests(requests).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
+
+            var records: IRecord[] = [];
+
+            for (var i = 0; i < response.data.length; i++) {
+                if (response.data[i].record) {
+                    records.push(response.data[i].record);
+                }
+            }
+
+            return records;
+        });
+    }
+
+    updateRecord(streamId: string, nodeId: string, record:IRecord, echo:boolean) : Promise<IRecord> {
 
         return this.sendRequests([<IRequest>{
             command: Constants.COMMAND_UPDATE,
@@ -66,7 +93,7 @@ class CommunicationService implements ICommunicationService {
         });
     }
 
-    createRecord(streamId: string, nodeId: string, record:IRecord) : angular.IPromise<IRecord> {
+    createRecord(streamId: string, nodeId: string, record:IRecord) : Promise<IRecord> {
 
         return this.sendRequests([<IRequest>{
             command: Constants.COMMAND_CREATE,
@@ -79,7 +106,7 @@ class CommunicationService implements ICommunicationService {
         });
     }
 
-    deleteRecord(streamId: string, nodeId: string, id:string) : angular.IPromise<void> {
+    deleteRecord(streamId: string, nodeId: string, id:string) : Promise<void> {
 
         return this.sendRequests([<IRequest>{
             command: Constants.COMMAND_DELETE,
@@ -93,37 +120,39 @@ class CommunicationService implements ICommunicationService {
         });
     }
 
-    getVersion(streamId: string) : angular.IPromise<string> {
+    getVersion(streamId: string, nodeId: string) : Promise<string> {
 
         return this.sendRequests([<IRequest>{
             command: Constants.COMMAND_VERSION,
-            streamId: streamId
+            streamId: streamId,
+            nodeId: nodeId
         }]).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
             return response.data && response.data.length === 1 ? response.data[0].version : this.qService.reject();
         });
     }
 
-    getOneStreamChanges(streamId: string, version:string) : angular.IPromise<IUpdate[]> {
+    getOneStreamChanges(streamId: string, nodeId: string, version:string) : Promise<IUpdate[]> {
 
         return this.sendRequests([<IRequest>{
             command: Constants.COMMAND_CHANGES,
             version: version,
-            streamId: streamId
+            streamId: streamId,
+            nodeId: nodeId
         }]).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
             return response.data && response.data.length === 1 ? response.data[0].changes : this.qService.reject();
         });
     }
 
-    getManyStreamsChanges(streamsAndVersions:{}) : angular.IPromise<IUpdates[]> {
+    getManyStreamsChanges(streamsAndVersions: IVersionRequest[]) : Promise<IUpdates[]> {
 
         var requests: IRequest[] = [];
-        var keys = Object.keys(streamsAndVersions);
 
-        for (var i = 0; i < keys.length; i++) {
+        for (var i = 0; i < streamsAndVersions.length; i++) {
             requests.push(<IRequest>{
                 command: Constants.COMMAND_CHANGES,
-                version: streamsAndVersions[keys[i]],
-                streamId: keys[i]
+                version: streamsAndVersions[i].version,
+                streamId: streamsAndVersions[i].streamId,
+                nodeId: streamsAndVersions[i].nodeId
             });
         }
 
@@ -138,7 +167,8 @@ class CommunicationService implements ICommunicationService {
             for (var i = 0; i < response.data.length; i++) {
                 responses.push(<IUpdates>{
                     streamId: response.data[i].streamId,
-                    updates: response.data[i].changes
+                    updates: response.data[i].changes,
+                    nodeId: response.data[i].nodeId
                 });
             }
 

@@ -2,14 +2,16 @@
 ///<reference path="IRecord.ts" />
 ///<reference path="IUpdate.ts" />
 ///<reference path="IUpdates.ts" />
+///<reference path="IVersionRequest.ts" />
 
 interface ICommunicationService {
-    getIds(streamId: string, nodeId: string, filter: any, options: IQueryOptions): angular.IPromise<string[]>;
-    readRecord(streamId: string, nodeId: string, id: string): angular.IPromise<IRecord>;
-    updateRecord(streamId: string, nodeId: string, record: IRecord, echo: boolean): angular.IPromise<IRecord>;
-    createRecord(streamId: string, nodeId: string, record: IRecord): angular.IPromise<IRecord>;
-    deleteRecord(streamId: string, nodeId: string, id: string): angular.IPromise<void>;
-    getVersion(streamId: string): angular.IPromise<string>;
-    getOneStreamChanges(streamId: string, version: string): angular.IPromise<IUpdate[]>;
-    getManyStreamsChanges(streamsAndVersions: {[key: string]: string}): angular.IPromise<IUpdates[]>;
+    getIds(streamId: string, nodeId: string, filter: any, options: IQueryOptions): Promise<string[]>;
+    readRecord(streamId: string, nodeId: string, id: string): Promise<IRecord>;
+    readRecords(streamId: string, nodeId: string, ids: string[]): Promise<IRecord[]>;
+    updateRecord(streamId: string, nodeId: string, record: IRecord, echo: boolean): Promise<IRecord>;
+    createRecord(streamId: string, nodeId: string, record: IRecord, echo: boolean): Promise<IRecord>;
+    deleteRecord(streamId: string, nodeId: string, id: string): Promise<void>;
+    getVersion(streamId: string, nodeId: string): Promise<string>;
+    getOneStreamChanges(streamId: string, nodeId: string, version: string): Promise<IUpdate[]>;
+    getManyStreamsChanges(streamsAndVersions: IVersionRequest[]): Promise<IUpdates[]>;
 }

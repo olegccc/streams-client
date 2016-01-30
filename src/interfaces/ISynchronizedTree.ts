@@ -1,7 +1,7 @@
-///<reference path="IStreamObject.ts" />
+///<reference path="IDestroyable.ts" />
 ///<reference path="ISynchronizedValue.ts" />
 
-interface ISynchronizedTree extends IStreamObject {
+interface ISynchronizedTree extends IDestroyable {
     getRoot(): ISynchronizedValue;
     getChildren(parentId: any): ISynchronizedValue[];
     getChildIds(parentId: any): any[];

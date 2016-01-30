@@ -1,11 +1,9 @@
-///<reference path="../interfaces/ISynchronizedArray.ts" />
+///<reference path="../interfaces/ISynchronizedObject.ts" />
 ///<reference path="../interfaces/IStreamObject.ts" />
 ///<reference path="../interfaces/IDataStructuresHolder.ts" />
 ///<reference path="../interfaces/IUpdate.ts" />
-///<reference path="../interfaces/ISynchronizedValue.ts" />
 
-class SynchronizedArray implements ISynchronizedArray, IStreamObject {
-
+class SynchronizedObject implements ISynchronizedObject, IStreamObject {
     private service: IDataStructuresHolder;
     private streamId: string;
 
@@ -14,27 +12,30 @@ class SynchronizedArray implements ISynchronizedArray, IStreamObject {
         this.streamId = streamId;
     }
 
-    onUpdate(update: IUpdate) {
-    }
-
-    push(item: ISynchronizedValue) {
-    }
-
-    get(index: number) : ISynchronizedValue {
+    getKeys() : Promise<string[]> {
         return undefined;
     }
 
-    set(index: number, value: ISynchronizedValue) {
+    onUpdate(update: IUpdate) {
     }
 
-    getReadOnlyArray() : ISynchronizedValue[] {
+    get(key:string) : Promise<any> {
+        return undefined;
+    }
+
+    set(key: string, value: any) : Promise<void> {
+        return undefined;
+    }
+
+    remove(key: string): Promise<void> {
+        return undefined;
+    }
+
+    getReadOnlyObject() : Promise<any> {
         return undefined;
     }
 
     destroy() {
         this.service.streamClosed(this.streamId);
-    }
-
-    remove(index: number) {
     }
 }

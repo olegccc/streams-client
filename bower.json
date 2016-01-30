@@ -25,6 +25,7 @@
   ],
   "dependencies": {
     "angular": "angularjs#~1.4.7",
-    "angular-mocks": "~1.4.7"
+    "angular-mocks": "~1.4.7",
+    "babel-polyfill": "^0.0.1"
   }
 }

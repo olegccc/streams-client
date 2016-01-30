@@ -151,6 +151,7 @@
       "files": [
         { "src": "bower_components/angular/angular.js" },
         { "src": "bower_components/angular-mocks/angular-mocks.js" },
+        { "src": "bower_components/babel-polyfill/browser-polyfill.js" },
         { "src": "build/streams-client.js" },
         { "src": "build/specs.js" }
       ]
