@@ -1,3 +1,3 @@
 interface IDataChannelListener {
-    onChange(type: number, id: string);
+    onChange(type: number, id: string) : Promise<void>;
 }

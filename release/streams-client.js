@@ -312,7 +312,6 @@ var DataChannelStorage = (function () {
                 nodeId: channel.getNodeId()
             };
             var key = request.streamId + ':' + request.nodeId;
-            console.log('request for update: ' + key);
             if (!channels[key]) {
                 channels[key] = [];
                 requests.push(request);
@@ -320,11 +319,9 @@ var DataChannelStorage = (function () {
             channels[key].push(channel);
         }
         return this.communicationService.getManyStreamsChanges(requests).then(function (updates) {
-            console.log('processing updates: ' + JSON.stringify(updates));
             for (var i = 0; i < updates.length; i++) {
                 var update = updates[i];
                 var key = update.streamId + ':' + update.nodeId;
-                console.log('processing update: ' + key);
                 var updateChannels = channels[key];
                 if (updateChannels) {
                     for (var j = 0; j < update.updates.length; j++) {
@@ -400,29 +397,74 @@ var SynchronizedArray = (function () {
 ///<reference path="../interfaces/IDataStructuresHolder.ts" />
 ///<reference path="../interfaces/IUpdate.ts" />
 var SynchronizedObject = (function () {
-    function SynchronizedObject(service, streamId) {
-        this.service = service;
-        this.streamId = streamId;
+    function SynchronizedObject(dataChannel) {
+        this.dataChannel = dataChannel;
+        this.dataChannel.addListener(this);
+        this.innerObject = {};
     }
-    SynchronizedObject.prototype.getKeys = function () {
-        return undefined;
+    SynchronizedObject.prototype.initialize = function () {
+        var _this = this;
+        return this.dataChannel.getIds().then(function (ids) {
+            if (!ids.length) {
+                return;
+            }
+            return _this.dataChannel.readMany(ids).then(function (records) {
+                for (var i = 0; i < records.length; i++) {
+                    _this.innerObject[records[i].id] = records[i]["value"];
+                }
+            });
+        });
     };
-    SynchronizedObject.prototype.onUpdate = function (update) {
+    SynchronizedObject.prototype.onChange = function (type, id) {
+        var _this = this;
+        switch (type) {
+            case Constants.UPDATE_CHANGED:
+            case Constants.UPDATE_CREATED:
+                return this.dataChannel.read(id).then(function (record) {
+                    _this.innerObject[record.id] = record["value"];
+                });
+            case Constants.UPDATE_DELETED:
+                delete this.innerObject[id];
+                break;
+        }
+        return new Promise(function (resolve) { resolve(); });
+    };
+    SynchronizedObject.prototype.getKeys = function () {
+        var _this = this;
+        return new Promise(function (resolve) {
+            resolve(Object.keys(_this.innerObject));
+        });
     };
     SynchronizedObject.prototype.get = function (key) {
-        return undefined;
+        var _this = this;
+        return new Promise(function (resolve) {
+            resolve(_this.innerObject[key]);
+        });
     };
     SynchronizedObject.prototype.set = function (key, value) {
-        return undefined;
+        var exists = this.innerObject[key];
+        this.innerObject[key] = value;
+        var record = {
+            id: key,
+            value: value
+        };
+        if (exists) {
+            return this.dataChannel.update(record, false).then(function () { });
+        }
+        else {
+            return this.dataChannel.create(record, false).then(function () { });
+        }
     };
     SynchronizedObject.prototype.remove = function (key) {
-        return undefined;
+        delete this.innerObject[key];
+        return this.dataChannel.remove(key);
     };
     SynchronizedObject.prototype.getReadOnlyObject = function () {
-        return undefined;
+        return this.innerObject;
     };
     SynchronizedObject.prototype.destroy = function () {
-        this.service.streamClosed(this.streamId);
+        this.dataChannel.removeListener(this);
+        this.dataChannel.close();
     };
     return SynchronizedObject;
 })();

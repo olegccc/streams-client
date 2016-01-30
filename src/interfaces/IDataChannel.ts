@@ -3,7 +3,7 @@
 ///<reference path="IDataChannelListener.ts" />
 
 interface IDataChannel {
-    getIds(filter: any, options: IQueryOptions) : Promise<string[]>;
+    getIds(filter?: any, options?: IQueryOptions) : Promise<string[]>;
     read(id: string) : Promise<IRecord>;
     readMany(ids: string[]) : Promise<IRecord[]>;
     update(record: IRecord, echo: boolean) : Promise<IRecord>;
