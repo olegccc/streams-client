@@ -1,158 +1,150 @@
 ///<reference path="../../structure/SynchronizedObject.ts" />
+///<reference path="DataChannelStub.ts" />
 
 describe('Synchronized object', () => {
 
-    it('should read all values on initialize', (done: () => void) => {
+    function createSynchronizedObject(state:IDataChannelStubState):Promise<ISynchronizedObject> {
+        var dataChannel = createDataChannelStub(state);
+        var ret = new SynchronizedObject(dataChannel);
+        return ret.initialize().then(() => {
+            return ret;
+        });
+    }
 
-        var expectedId1 = 'aaa';
-        var expectedId2 = 'bbb';
-        var expectedId3 = 'ccc';
-        var expectedValue1 = 'value1';
-        var expectedValue2 = 'value2';
-        var expectedValue3 = 'value3';
-        var expectedValue4 = 'value4';
-        var ids = [expectedId1, expectedId2];
-        var requestedIds = [];
-        var addListenerCount = 0;
-        var removeListenerCount = 0;
-        var closeCount = 0;
-        var currentListener: IDataChannelListener;
-        var requestedId = '';
-        var updateRecord: IRecord;
-        var createRecord: IRecord;
-        var deleteRecordId: string;
+    var expectedId1 = 'aaa';
+    var expectedId2 = 'bbb';
 
-        var dataChannel = <IDataChannel> {
+    var expectedValue1 = 'value1';
+    var expectedValue2 = 'value2';
 
-            getIds: (filter?: any, options?: IQueryOptions) : Promise<string[]> => {
-                return new Promise<string[]>((resolve) => {
-                    resolve(ids);
-                });
+    function createCommonState(state:IDataChannelStubState) {
+
+        state.idsResponse = [expectedId1, expectedId2];
+        state.readManyResponse = <any>[
+            {
+                id: expectedId1,
+                value: expectedValue1
             },
-
-            read: (id: string) : Promise<IRecord> => {
-                requestedId = id;
-                return new Promise<IRecord> ((resolve) => {
-                    resolve(<any>{
-                        id: expectedId2,
-                        value: expectedValue3
-                    });
-                });
-            },
-
-            update: (record: IRecord, echo: boolean) : Promise<IRecord> => {
-                updateRecord = record;
-                return new Promise<IRecord>((resolve) => {
-                    resolve(record);
-                });
-            },
-
-            remove: (id: string) : Promise<void> => {
-                deleteRecordId = id;
-                return new Promise<void>((resolve) => {
-                    resolve();
-                });
-            },
-
-            create: (record: IRecord, echo: boolean) : Promise<IRecord> => {
-                createRecord = record;
-                return new Promise<IRecord>((resolve) => {
-                    resolve(record);
-                });
-            },
-
-            readMany: (ids: string[]) : Promise<IRecord[]> => {
-
-                requestedIds = ids;
-
-                return new Promise<IRecord[]> ((resolve) => {
-                    resolve([
-                        <any>{
-                            id: expectedId1,
-                            value: expectedValue1
-                        },
-                        <any>{
-                            id: expectedId2,
-                            value: expectedValue2
-                        }
-                    ]);
-                });
-            },
-            addListener: (listener: IDataChannelListener) => {
-                currentListener = listener;
-                addListenerCount++;
-            },
-            removeListener: (listener: IDataChannelListener) => {
-                if (currentListener === listener) {
-                    currentListener = null;
-                }
-                removeListenerCount++;
-            },
-            close: () => {
-                closeCount++;
+            {
+                id: expectedId2,
+                value: expectedValue2
             }
-        };
+        ];
 
-        var synchronizedObject = new SynchronizedObject(dataChannel);
+        return state;
+    }
 
-        expect(addListenerCount).toBe(1);
-        expect(removeListenerCount).toBe(0);
+    it('should read all values on initialize', (done:() => void) => {
 
-        synchronizedObject.initialize().then(() => {
+        var state = createCommonState(<any>{});
+
+        createSynchronizedObject(state).then((synchronizedObject:ISynchronizedObject) => {
+
+            expect(state.readManyRequestedIds.length).toBe(2);
+            expect(state.readManyRequestedIds[0]).toBe(expectedId1);
+
+            expect(state.addListenerCount).toBe(1);
+            expect(state.removeListenerCount).toBe(0);
+            expect(state.closeCount).toBe(0);
 
             var readOnlyObject = synchronizedObject.getReadOnlyObject();
+
             expect(readOnlyObject[expectedId1]).toBe(expectedValue1);
             expect(readOnlyObject[expectedId2]).toBe(expectedValue2);
-            expect(closeCount).toBe(0);
+            expect(synchronizedObject.getKeys()).toEqual(state.idsResponse);
 
-            synchronizedObject.getKeys().then((keys: string[]) => {
+            expect(synchronizedObject.get(expectedId1)).toBe(expectedValue1);
 
-                expect(keys).toEqual(ids);
+            done();
+        });
+    });
 
-                synchronizedObject.get(expectedId1).then((value) => {
-                    expect(value).toBe(expectedValue1);
-                    expect(requestedIds.length).toBe(2);
-                    expect(requestedIds[0]).toBe(expectedId1);
+    it('should update its state on updates', (done) => {
 
-                    expect(currentListener).toBeDefined();
+        var expectedValue3 = 'value3';
 
-                    currentListener.onChange(Constants.UPDATE_CHANGED, expectedId2).then(() => {
+        var state = createCommonState(<any>{
+            readResponse: {
+                id: expectedId2,
+                value: expectedValue3
+            }
+        });
 
-                        expect(requestedId).toBe(expectedId2);
-                        expect(readOnlyObject[expectedId2]).toBe(expectedValue3);
-                        expect(readOnlyObject[expectedId1]).toBeDefined();
+        createSynchronizedObject(state).then((synchronizedObject:ISynchronizedObject) => {
 
-                        currentListener.onChange(Constants.UPDATE_DELETED, expectedId1).then(() => {
+            expect(state.currentListener).toBeDefined();
 
-                            expect(readOnlyObject[expectedId1]).toBeUndefined();
+            state.currentListener.onChange(Constants.UPDATE_CHANGED, expectedId2).then(() => {
 
-                            expect(updateRecord).toBeUndefined();
+                var readOnlyObject = synchronizedObject.getReadOnlyObject();
 
-                            synchronizedObject.set(expectedId2, expectedValue4).then(() => {
-                                expect(updateRecord["id"]).toBe(expectedId2);
-                                expect(createRecord).toBeUndefined();
+                expect(state.readRequestedId).toBe(expectedId2);
+                expect(readOnlyObject[expectedId2]).toBe(expectedValue3);
+                expect(readOnlyObject[expectedId1]).toBeDefined();
 
-                                synchronizedObject.set(expectedId3, expectedValue1).then(() => {
-                                    expect(createRecord.id).toBe(expectedId3);
-                                    expect(readOnlyObject[expectedId3]).toBe(expectedValue1);
-                                    expect(deleteRecordId).toBeUndefined();
+                state.currentListener.onChange(Constants.UPDATE_DELETED, expectedId1).then(() => {
 
-                                    synchronizedObject.remove(expectedId2).then(() => {
-                                        expect(deleteRecordId).toBe(expectedId2);
-                                        expect(readOnlyObject[expectedId2]).toBeUndefined();
+                    expect(readOnlyObject[expectedId1]).toBeUndefined();
 
-                                        synchronizedObject.destroy();
-                                        expect(addListenerCount).toBe(1);
-                                        expect(removeListenerCount).toBe(1);
-                                        expect(closeCount).toBe(1);
-                                        done();
-                                    });
-                                });
-                            });
-                        });
-                    });
+                    done();
                 });
             });
         });
     });
+
+    it('should send updates on changes', ((done) => {
+
+        var state = createCommonState(<any>{});
+
+        var expectedValue4 = 'value4';
+        var expectedId3 = 'ccc';
+
+        createSynchronizedObject(state).then((synchronizedObject:ISynchronizedObject) => {
+
+            expect(state.updateRequestedRecord).toBeUndefined();
+
+            synchronizedObject.set(expectedId2, expectedValue4).then(() => {
+
+                expect(state.updateRequestedRecord["id"]).toBe(expectedId2);
+                expect(state.createRequestedRecord).toBeUndefined();
+
+                synchronizedObject.set(expectedId3, expectedValue1).then(() => {
+
+                    expect(state.createRequestedRecord.id).toBe(expectedId3);
+
+                    var readOnlyObject = synchronizedObject.getReadOnlyObject();
+
+                    expect(readOnlyObject[expectedId3]).toBe(expectedValue1);
+                    expect(state.deleteRecordId.length).toBe(0);
+
+                    synchronizedObject.remove(expectedId2).then(() => {
+                        expect(state.deleteRecordId[0]).toBe(expectedId2);
+                        expect(readOnlyObject[expectedId2]).toBeUndefined();
+
+                        done();
+                    });
+                });
+            });
+
+        });
+    }));
+
+    it('should unsubscribe on destroy', ((done) => {
+        var state = createCommonState(<any>{});
+
+        createSynchronizedObject(state).then((synchronizedObject:ISynchronizedObject) => {
+
+            expect(state.addListenerCount).toBe(1);
+            expect(state.removeListenerCount).toBe(0);
+            expect(state.closeCount).toBe(0);
+
+            synchronizedObject.destroy();
+
+            expect(state.addListenerCount).toBe(1);
+            expect(state.removeListenerCount).toBe(1);
+            expect(state.closeCount).toBe(1);
+
+            done();
+        });
+    }));
 });

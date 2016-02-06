@@ -12,6 +12,7 @@
     Constants.UPDATE_DELETED = 1;
     Constants.UPDATE_CREATED = 2;
     Constants.UPDATE_CHANGED = 3;
+    Constants.DEFAULT_CACHE_UPDATE_INTERVAL = 2000;
     return Constants;
 })();
 ///<reference path="IQueryOptions.ts" />
@@ -31,6 +32,7 @@
 ///<reference path="ISynchronizedObject.ts" />
 ///<reference path="ISynchronizedTree.ts" />
 ///<reference path="ISynchronizedArray.ts" />
+///<reference path="IRecord.ts" />
 ///<reference path="IQueryOptions.ts" />
 ///<reference path='IRecord.ts'/>
 ///<reference path='IUpdate.ts'/>
@@ -88,6 +90,28 @@ var CommunicationService = (function () {
                 id: ids[i],
                 nodeId: nodeId,
                 streamId: streamId
+            });
+        }
+        return this.sendRequests(requests).then(function (response) {
+            var records = [];
+            for (var i = 0; i < response.data.length; i++) {
+                if (response.data[i].record) {
+                    records.push(response.data[i].record);
+                }
+            }
+            return records;
+        });
+    };
+    CommunicationService.prototype.updateRecords = function (streamId, nodeId, records, echo) {
+        var requests = [];
+        for (var i = 0; i < records.length; i++) {
+            requests.push({
+                command: Constants.COMMAND_UPDATE,
+                id: records[i].id,
+                nodeId: nodeId,
+                record: records[i],
+                streamId: streamId,
+                echo: echo
             });
         }
         return this.sendRequests(requests).then(function (response) {
@@ -258,6 +282,9 @@ var DataChannel = (function () {
     DataChannel.prototype.update = function (record, echo) {
         return this.communicationService.updateRecord(this.streamId, this.nodeId, record, echo);
     };
+    DataChannel.prototype.updateMany = function (records, echo) {
+        return this.communicationService.updateRecords(this.streamId, this.nodeId, records, echo);
+    };
     DataChannel.prototype.create = function (record, echo) {
         return this.communicationService.createRecord(this.streamId, this.nodeId, record, echo);
     };
@@ -336,65 +363,8 @@ var DataChannelStorage = (function () {
     };
     return DataChannelStorage;
 })();
-///<reference path="../interfaces/ICommunicationService.ts" />
-///<reference path="../interfaces/IDataStructuresService.ts" />
-///<reference path="../interfaces/IConfiguration.ts" />
-///<reference path="../interfaces/Constants.ts" />
-///<reference path="../interfaces/IRequest.ts" />
-///<reference path="../interfaces/IResponse.ts" />
-///<reference path="../modules/StreamsClientModule.ts" />
-///<reference path="../interfaces/IDataStructuresHolder.ts" />
-var DataStructuresService = (function () {
-    function DataStructuresService(qService, communicationService) {
-        this.qService = qService;
-        this.communicationService = communicationService;
-    }
-    DataStructuresService.prototype.getObject = function (id) {
-        return undefined;
-    };
-    DataStructuresService.prototype.getTree = function (id) {
-        return undefined;
-    };
-    DataStructuresService.prototype.getArray = function (id, filter) {
-        return undefined;
-    };
-    DataStructuresService.prototype.streamClosed = function (streamId) {
-    };
-    return DataStructuresService;
-})();
-streamsClientModule.service('streamsDataStructures', ['$q', 'streamsCommunication', DataStructuresService]);
-///<reference path="../interfaces/ISynchronizedArray.ts" />
-///<reference path="../interfaces/IStreamObject.ts" />
-///<reference path="../interfaces/IDataStructuresHolder.ts" />
-///<reference path="../interfaces/IUpdate.ts" />
-///<reference path="../interfaces/ISynchronizedValue.ts" />
-var SynchronizedArray = (function () {
-    function SynchronizedArray(service, streamId) {
-        this.service = service;
-        this.streamId = streamId;
-    }
-    SynchronizedArray.prototype.onUpdate = function (update) {
-    };
-    SynchronizedArray.prototype.push = function (item) {
-    };
-    SynchronizedArray.prototype.get = function (index) {
-        return undefined;
-    };
-    SynchronizedArray.prototype.set = function (index, value) {
-    };
-    SynchronizedArray.prototype.getReadOnlyArray = function () {
-        return undefined;
-    };
-    SynchronizedArray.prototype.destroy = function () {
-        this.service.streamClosed(this.streamId);
-    };
-    SynchronizedArray.prototype.remove = function (index) {
-    };
-    return SynchronizedArray;
-})();
 ///<reference path="../interfaces/ISynchronizedObject.ts" />
 ///<reference path="../interfaces/IStreamObject.ts" />
-///<reference path="../interfaces/IDataStructuresHolder.ts" />
 ///<reference path="../interfaces/IUpdate.ts" />
 var SynchronizedObject = (function () {
     function SynchronizedObject(dataChannel) {
@@ -430,16 +400,10 @@ var SynchronizedObject = (function () {
         return new Promise(function (resolve) { resolve(); });
     };
     SynchronizedObject.prototype.getKeys = function () {
-        var _this = this;
-        return new Promise(function (resolve) {
-            resolve(Object.keys(_this.innerObject));
-        });
+        return Object.keys(this.innerObject);
     };
     SynchronizedObject.prototype.get = function (key) {
-        var _this = this;
-        return new Promise(function (resolve) {
-            resolve(_this.innerObject[key]);
-        });
+        return this.innerObject[key];
     };
     SynchronizedObject.prototype.set = function (key, value) {
         var exists = this.innerObject[key];
@@ -468,6 +432,409 @@ var SynchronizedObject = (function () {
     };
     return SynchronizedObject;
 })();
+///<reference path="../interfaces/ISynchronizedTree.ts" />
+///<reference path="../interfaces/IDataChannelListener.ts" />
+///<reference path="../interfaces/IDataChannel.ts" />
+///<reference path="../interfaces/INode.ts" />
+var SynchronizedTree = (function () {
+    function SynchronizedTree(dataChannel) {
+        this.dataChannel = dataChannel;
+        this.tree = null;
+        this.recordMap = {};
+        this.dataChannel.addListener(this);
+    }
+    SynchronizedTree.prototype.initialize = function () {
+        var _this = this;
+        return this.dataChannel.getIds().then(function (ids) {
+            return _this.dataChannel.readMany(ids).then(function (records) {
+                //console.log('read records: ', JSON.stringify(records, null, " "));
+                _this.buildTree(records);
+            });
+        });
+    };
+    SynchronizedTree.getChildren = function (record) {
+        return record["__children"];
+    };
+    SynchronizedTree.setChildren = function (record, children) {
+        record["__children"] = children;
+    };
+    SynchronizedTree.getParent = function (record) {
+        return record["__parent"];
+    };
+    SynchronizedTree.setParent = function (record, parent) {
+        record["__parent"] = parent;
+    };
+    SynchronizedTree.removeServiceFields = function (record) {
+        var ret = {};
+        var keys = Object.keys(record);
+        var key;
+        for (var i = 0; i < keys.length; i++) {
+            key = keys[i];
+            if (key === "__parent") {
+                continue;
+            }
+            if (key === "__children") {
+                continue;
+            }
+            if (record.hasOwnProperty(key)) {
+                ret[key] = record[key];
+            }
+        }
+        return ret;
+    };
+    SynchronizedTree.prototype.buildTree = function (records) {
+        var treeMap = {};
+        this.tree = null;
+        this.recordMap = {};
+        for (var i = 0; i < records.length; i++) {
+            var record = records[i];
+            if (!record.parentId) {
+                if (!this.tree) {
+                    this.tree = record;
+                }
+            }
+            else {
+                if (!treeMap.hasOwnProperty(record.parentId)) {
+                    treeMap[record.parentId] = [];
+                }
+                treeMap[record.parentId].push(record);
+            }
+        }
+        //console.log('treemap: ', JSON.stringify(treeMap, null, " "));
+        if (this.tree) {
+            this.fillChildren(this.tree, treeMap);
+        }
+    };
+    SynchronizedTree.prototype.onRecordRemoved = function (record) {
+        var children = SynchronizedTree.getChildren(record);
+        if (children) {
+            for (var i = 0; i < children.length; i++) {
+                this.onRecordRemoved(children[i]);
+            }
+        }
+        delete this.recordMap[record.id];
+    };
+    SynchronizedTree.prototype.onChange = function (type, id) {
+        var _this = this;
+        switch (type) {
+            case Constants.UPDATE_CHANGED:
+                return this.dataChannel.read(id).then(function (record) {
+                    _this.updateRecord(record);
+                });
+                break;
+            case Constants.UPDATE_DELETED:
+                var currentRecord = this.recordMap[id];
+                this.removeRecord(currentRecord);
+                return new Promise(function (resolve) { return resolve(); });
+            case Constants.UPDATE_CREATED:
+                return this.dataChannel.read(id).then(function (record) {
+                    _this.addRecord(record);
+                });
+                break;
+        }
+    };
+    SynchronizedTree.prototype.getRoot = function () {
+        return this.tree;
+    };
+    SynchronizedTree.prototype.getChildren = function (parentId) {
+        var ret = [];
+        var node = this.recordMap[parentId];
+        if (node) {
+            var children = SynchronizedTree.getChildren(node);
+            for (var i = 0; i < children.length; i++) {
+                ret.push(children[i]);
+            }
+        }
+        return ret;
+    };
+    SynchronizedTree.prototype.getChildIds = function (parentId) {
+        var ret = [];
+        var node = this.recordMap[parentId];
+        if (node) {
+            var children = SynchronizedTree.getChildren(node);
+            for (var i = 0; i < children.length; i++) {
+                ret.push(children[i].id);
+            }
+        }
+        return ret;
+    };
+    SynchronizedTree.prototype.getParentId = function (itemId) {
+        var record = this.recordMap[itemId];
+        if (!record) {
+            return null;
+        }
+        return record.parentId;
+    };
+    SynchronizedTree.prototype.removeRecord = function (record) {
+        this.onRecordRemoved(record);
+        var parent = SynchronizedTree.getParent(record);
+        if (parent) {
+            var children = SynchronizedTree.getChildren(parent);
+            for (var i = 0; i < children.length; i++) {
+                if (children[i].id === record.id) {
+                    children.splice(i, 1);
+                    break;
+                }
+            }
+        }
+        else if (this.tree === record) {
+            this.tree = null;
+        }
+    };
+    SynchronizedTree.prototype.addRecord = function (record) {
+        SynchronizedTree.setChildren(record, []);
+        if (!record.parentId) {
+            this.tree = record;
+            this.recordMap[record.id] = record;
+        }
+        else {
+            var parent = this.recordMap[record.parentId];
+            SynchronizedTree.setParent(record, parent);
+            if (parent) {
+                SynchronizedTree.getChildren(parent).push(record);
+                this.recordMap[record.id] = record;
+            }
+        }
+    };
+    SynchronizedTree.prototype.fillChildren = function (node, treeMap) {
+        var children = treeMap[node.id] || [];
+        SynchronizedTree.setChildren(node, children);
+        this.recordMap[node.id] = node;
+        for (var i = 0; i < children.length; i++) {
+            SynchronizedTree.setParent(children[i], node);
+            this.fillChildren(children[i], treeMap);
+        }
+    };
+    SynchronizedTree.prototype.fillChildrenToRemove = function (record, ids) {
+        var children = SynchronizedTree.getChildren(record);
+        for (var i = 0; i < children.length; i++) {
+            this.fillChildrenToRemove(children[i], ids);
+            ids.push(children[i].id);
+        }
+    };
+    SynchronizedTree.prototype.remove = function (itemId) {
+        var ids = [];
+        var record = this.recordMap[itemId];
+        this.fillChildrenToRemove(record, ids);
+        this.removeRecord(record);
+        var promises = [];
+        for (var i = 0; i < ids.length; i++) {
+            promises.push(this.dataChannel.remove(ids[i]));
+        }
+        promises.push(this.dataChannel.remove(itemId));
+        return Promise.all(promises).then(function () { });
+    };
+    SynchronizedTree.prototype.add = function (parentId, item) {
+        var _this = this;
+        var record = item;
+        record.parentId = parentId;
+        return this.dataChannel.create(record, true).then(function (record) {
+            _this.addRecord(record);
+        });
+    };
+    SynchronizedTree.prototype.get = function (id) {
+        return this.recordMap[id];
+    };
+    SynchronizedTree.prototype.updateRecord = function (record) {
+        var currentRecord = this.recordMap[record.id];
+        if (record.parentId === currentRecord.parentId) {
+            this.recordMap[record.id] = record;
+            SynchronizedTree.setParent(record, SynchronizedTree.getParent(currentRecord));
+            SynchronizedTree.setChildren(record, SynchronizedTree.getChildren(currentRecord));
+        }
+        else {
+            var children = SynchronizedTree.getChildren(currentRecord);
+            SynchronizedTree.setChildren(currentRecord, []);
+            this.removeRecord(currentRecord);
+            this.addRecord(record);
+            SynchronizedTree.setChildren(record, children);
+        }
+    };
+    SynchronizedTree.prototype.update = function (item) {
+        var _this = this;
+        var record = this.recordMap[item.id];
+        return this.dataChannel.update(SynchronizedTree.removeServiceFields(record), false).then(function () {
+            _this.updateRecord(item);
+        });
+    };
+    SynchronizedTree.prototype.destroy = function () {
+        this.dataChannel.removeListener(this);
+        this.dataChannel.close();
+    };
+    return SynchronizedTree;
+})();
+///<reference path="../interfaces/ISynchronizedArray.ts" />
+///<reference path="../interfaces/ISynchronizedValue.ts" />
+///<reference path="../interfaces/IDataChannelListener.ts" />
+var SynchronizedArray = (function () {
+    function SynchronizedArray(dataChannel) {
+        this.dataChannel = dataChannel;
+        this.dataChannel.addListener(this);
+        this.records = [];
+        this.indexKey = "__index";
+    }
+    SynchronizedArray.prototype.getIndex = function (record) {
+        return record[this.indexKey];
+    };
+    SynchronizedArray.prototype.setIndex = function (record, index) {
+        record[this.indexKey] = index;
+    };
+    SynchronizedArray.prototype.initialize = function () {
+        var _this = this;
+        return this.dataChannel.getIds().then(function (ids) {
+            return _this.dataChannel.readMany(ids).then(function (records) {
+                for (var i = 0; i < records.length; i++) {
+                    var record = records[i];
+                    var recordIndex = _this.getIndex(record);
+                    _this.records[recordIndex] = record;
+                }
+            });
+        });
+    };
+    SynchronizedArray.prototype.count = function () {
+        return this.records.length;
+    };
+    SynchronizedArray.prototype.createIndex = function (record) {
+        var index = this.records.length;
+        this.setIndex(record, index);
+        this.records[this.records.length] = record;
+        return this.dataChannel.update(record, false).then(function () { });
+    };
+    SynchronizedArray.prototype.onChange = function (type, id) {
+        var _this = this;
+        switch (type) {
+            case Constants.UPDATE_CHANGED:
+                return this.dataChannel.read(id).then(function (record) {
+                    var index = _this.getIndex(record);
+                    if (!index) {
+                        return _this.createIndex(record);
+                    }
+                    _this.records[index] = record;
+                    for (var i = 0; i < _this.records.length; i++) {
+                        if (i !== index && _this.records[i] && _this.records[i].id === id) {
+                            _this.records[i] = undefined;
+                        }
+                    }
+                });
+            case Constants.UPDATE_CREATED:
+                return this.dataChannel.read(id).then(function (record) {
+                    var index = _this.getIndex(record);
+                    if (!index) {
+                        return _this.createIndex(record);
+                    }
+                    _this.records[index] = record;
+                });
+            case Constants.UPDATE_DELETED:
+                for (var i = 0; i < this.records.length; i++) {
+                    if (this.records[i] && this.records[i].id === id) {
+                        this.records.splice(i, 1);
+                        break;
+                    }
+                }
+                return new Promise(function (resolve) {
+                    resolve();
+                });
+        }
+    };
+    SynchronizedArray.prototype.push = function (item) {
+        this.setIndex(item, this.records.length);
+        this.records[this.records.length] = item;
+        return this.dataChannel.create(item, false).then(function (record) {
+            item.id = record.id;
+        });
+    };
+    SynchronizedArray.prototype.get = function (index) {
+        return this.records[index];
+    };
+    SynchronizedArray.prototype.set = function (index, value) {
+        var _this = this;
+        var oldRecord = this.records[index];
+        if (!oldRecord) {
+            this.setIndex(value, index);
+            if (value.id) {
+                return this.dataChannel.update(value, false).then(function () {
+                    _this.records[index] = value;
+                });
+            }
+            else {
+                return this.dataChannel.create(value, true).then(function (value) {
+                    _this.records[index] = value;
+                });
+            }
+        }
+        if (oldRecord.id !== value.id) {
+            return this.dataChannel.remove(oldRecord.id).then(function () {
+                _this.setIndex(value, index);
+                return _this.dataChannel.create(value, true).then(function (value) {
+                    _this.records[index] = value;
+                });
+            });
+        }
+        this.setIndex(value, index);
+        return this.dataChannel.update(value, false).then(function () {
+            _this.records[index] = value;
+        });
+    };
+    SynchronizedArray.prototype.getReadOnlyArray = function () {
+        return this.records;
+    };
+    SynchronizedArray.prototype.destroy = function () {
+        this.dataChannel.removeListener(this);
+        this.dataChannel.close();
+    };
+    SynchronizedArray.prototype.remove = function (index) {
+        var _this = this;
+        var record = this.records[index];
+        this.records.splice(index, 1);
+        return this.dataChannel.remove(record.id).then(function () {
+            var updates = [];
+            for (var i = index; i < _this.records.length; i++) {
+                updates.push(_this.records[i]);
+                _this.setIndex(_this.records[i], i);
+            }
+            return _this.dataChannel.updateMany(updates, false).then(function () { });
+        });
+    };
+    return SynchronizedArray;
+})();
+///<reference path="../interfaces/ICommunicationService.ts" />
+///<reference path="../interfaces/IDataStructuresService.ts" />
+///<reference path="../interfaces/Constants.ts" />
+///<reference path="../interfaces/IDataChannelStorage.ts" />
+///<reference path="../structure/SynchronizedObject.ts" />
+///<reference path="../structure/SynchronizedTree.ts" />
+///<reference path="../structure/SynchronizedArray.ts" />
+var DataStructuresService = (function () {
+    function DataStructuresService(communicationService) {
+        this.dataChannelStorage = new DataChannelStorage(communicationService);
+    }
+    DataStructuresService.prototype.getObject = function (streamId, nodeId) {
+        return this.dataChannelStorage.get(streamId, nodeId).then(function (dataChannel) {
+            var synchronizedObject = new SynchronizedObject(dataChannel);
+            return synchronizedObject.initialize().then(function () {
+                return synchronizedObject;
+            });
+        });
+    };
+    DataStructuresService.prototype.getTree = function (streamId, nodeId) {
+        return this.dataChannelStorage.get(streamId, nodeId).then(function (dataChannel) {
+            var synchronizedTree = new SynchronizedTree(dataChannel);
+            return synchronizedTree.initialize().then(function () {
+                return synchronizedTree;
+            });
+        });
+    };
+    DataStructuresService.prototype.getArray = function (streamId, nodeId) {
+        return this.dataChannelStorage.get(streamId, nodeId).then(function (dataChannel) {
+            var synchronizedArray = new SynchronizedArray(dataChannel);
+            return synchronizedArray.initialize().then(function () {
+                return synchronizedArray;
+            });
+        });
+    };
+    return DataStructuresService;
+})();
+streamsClientModule.service('streamsDataStructures', ['streamsCommunication', DataStructuresService]);
 var templates = {
     "index.jade": ""
 };

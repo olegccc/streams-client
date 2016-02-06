@@ -12,4 +12,6 @@ class Constants {
     static UPDATE_DELETED: number = 1;
     static UPDATE_CREATED: number = 2;
     static UPDATE_CHANGED: number = 3;
+
+    static DEFAULT_CACHE_UPDATE_INTERVAL: number = 2000;
 }

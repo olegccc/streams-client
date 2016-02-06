@@ -7,6 +7,7 @@ interface IDataChannel {
     read(id: string) : Promise<IRecord>;
     readMany(ids: string[]) : Promise<IRecord[]>;
     update(record: IRecord, echo: boolean) : Promise<IRecord>;
+    updateMany(records: IRecord[], echo: boolean) : Promise<IRecord[]>;
     create(record: IRecord, echo: boolean) : Promise<IRecord>;
     remove(id: string) : Promise<void>;
     addListener(listener: IDataChannelListener);

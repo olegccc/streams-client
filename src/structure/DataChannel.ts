@@ -92,6 +92,10 @@ class DataChannel implements IDataChannel {
         return this.communicationService.updateRecord(this.streamId, this.nodeId, record, echo);
     }
 
+    updateMany(records:IRecord[], echo:boolean):Promise<IRecord[]> {
+        return this.communicationService.updateRecords(this.streamId, this.nodeId, records, echo);
+    }
+
     create(record: IRecord, echo: boolean):Promise<IRecord> {
         return this.communicationService.createRecord(this.streamId, this.nodeId, record, echo);
     }

@@ -79,6 +79,34 @@ class CommunicationService implements ICommunicationService {
         });
     }
 
+    updateRecords(streamId: string, nodeId: string, records:IRecord[], echo:boolean) : Promise<IRecord[]> {
+        var requests: IRequest[] = [];
+
+        for (var i = 0; i < records.length; i++) {
+            requests.push(<IRequest>{
+                command: Constants.COMMAND_UPDATE,
+                id: records[i].id,
+                nodeId: nodeId,
+                record: records[i],
+                streamId: streamId,
+                echo: echo
+            });
+        }
+
+        return this.sendRequests(requests).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
+
+            var records: IRecord[] = [];
+
+            for (var i = 0; i < response.data.length; i++) {
+                if (response.data[i].record) {
+                    records.push(response.data[i].record);
+                }
+            }
+
+            return records;
+        });
+    }
+
     updateRecord(streamId: string, nodeId: string, record:IRecord, echo:boolean) : Promise<IRecord> {
 
         return this.sendRequests([<IRequest>{

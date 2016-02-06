@@ -145,6 +145,9 @@
       "browsers": [
         "PhantomJS"
       ],
+      "reporters": [
+        "spec"
+      ],
       "singleRun": true
     },
     "build": {

@@ -9,6 +9,7 @@ interface ICommunicationService {
     readRecord(streamId: string, nodeId: string, id: string): Promise<IRecord>;
     readRecords(streamId: string, nodeId: string, ids: string[]): Promise<IRecord[]>;
     updateRecord(streamId: string, nodeId: string, record: IRecord, echo: boolean): Promise<IRecord>;
+    updateRecords(streamId: string, nodeId: string, records: IRecord[], echo: boolean): Promise<IRecord[]>;
     createRecord(streamId: string, nodeId: string, record: IRecord, echo: boolean): Promise<IRecord>;
     deleteRecord(streamId: string, nodeId: string, id: string): Promise<void>;
     getVersion(streamId: string, nodeId: string): Promise<string>;

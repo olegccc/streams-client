@@ -3,7 +3,7 @@
 ///<reference path="ISynchronizedArray.ts" />
 
 interface IDataStructuresService {
-    getObject(id: string): ISynchronizedObject;
-    getTree(id: string): ISynchronizedTree;
-    getArray(id: string, filter?: any): ISynchronizedArray;
+    getObject(streamId: string, nodeId: string): Promise<ISynchronizedObject>;
+    getTree(streamId: string, nodeId: string): Promise<ISynchronizedTree>;
+    getArray(streamId: string, nodeId: string): Promise<ISynchronizedArray>;
 }

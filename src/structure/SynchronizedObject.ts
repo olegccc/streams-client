@@ -1,6 +1,5 @@
 ///<reference path="../interfaces/ISynchronizedObject.ts" />
 ///<reference path="../interfaces/IStreamObject.ts" />
-///<reference path="../interfaces/IDataStructuresHolder.ts" />
 ///<reference path="../interfaces/IUpdate.ts" />
 
 class SynchronizedObject implements ISynchronizedObject, IDataChannelListener {
@@ -19,6 +18,7 @@ class SynchronizedObject implements ISynchronizedObject, IDataChannelListener {
             if (!ids.length) {
                 return;
             }
+
             return this.dataChannel.readMany(ids).then((records: IRecord[]) => {
                 for (var i = 0; i < records.length; i++) {
                     this.innerObject[records[i].id] = records[i]["value"];
@@ -41,16 +41,12 @@ class SynchronizedObject implements ISynchronizedObject, IDataChannelListener {
         return new Promise<void>((resolve) => { resolve(); });
     }
 
-    getKeys() : Promise<string[]> {
-        return new Promise<string[]>((resolve) => {
-            resolve(Object.keys(this.innerObject));
-        });
+    getKeys() : string[] {
+        return Object.keys(this.innerObject);
     }
 
-    get(key:string) : Promise<any> {
-        return new Promise<any>((resolve) => {
-            resolve(this.innerObject[key]);
-        });
+    get(key:string) : any {
+        return this.innerObject[key];
     }
 
     set(key: string, value: any) : Promise<void> {

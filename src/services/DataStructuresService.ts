@@ -1,37 +1,45 @@
 ///<reference path="../interfaces/ICommunicationService.ts" />
 ///<reference path="../interfaces/IDataStructuresService.ts" />
-///<reference path="../interfaces/IConfiguration.ts" />
 ///<reference path="../interfaces/Constants.ts" />
-///<reference path="../interfaces/IRequest.ts" />
-///<reference path="../interfaces/IResponse.ts" />
-///<reference path="../modules/StreamsClientModule.ts" />
-///<reference path="../interfaces/IDataStructuresHolder.ts" />
+///<reference path="../interfaces/IDataChannelStorage.ts" />
+///<reference path="../structure/SynchronizedObject.ts" />
+///<reference path="../structure/SynchronizedTree.ts" />
+///<reference path="../structure/SynchronizedArray.ts" />
 
-class DataStructuresService implements IDataStructuresService, IDataStructuresHolder {
+class DataStructuresService implements IDataStructuresService {
 
-    private qService: ng.IQService;
-    private communicationService: ICommunicationService;
+    private dataChannelStorage: IDataChannelStorage;
 
-    constructor(qService: ng.IQService, communicationService: ICommunicationService) {
-        this.qService = qService;
-        this.communicationService = communicationService;
+    constructor(communicationService: ICommunicationService) {
+        this.dataChannelStorage = new DataChannelStorage(communicationService);
     }
 
-    getObject(id: string) : ISynchronizedObject {
-        return undefined;
+    getObject(streamId: string, nodeId: string) : Promise<ISynchronizedObject> {
+        return this.dataChannelStorage.get(streamId, nodeId).then((dataChannel: IDataChannel) => {
+            var synchronizedObject = new SynchronizedObject(dataChannel);
+            return synchronizedObject.initialize().then(() => {
+                return synchronizedObject;
+            });
+        });
     }
 
-    getTree(id: string) : ISynchronizedTree {
-        return undefined;
+    getTree(streamId: string, nodeId: string) : Promise<ISynchronizedTree> {
+        return this.dataChannelStorage.get(streamId, nodeId).then((dataChannel: IDataChannel) => {
+            var synchronizedTree = new SynchronizedTree(dataChannel);
+            return synchronizedTree.initialize().then(() => {
+                return synchronizedTree;
+            });
+        });
     }
 
-    getArray(id: string, filter?: any) : ISynchronizedArray {
-        return undefined;
-    }
-
-    streamClosed(streamId: string) {
-
+    getArray(streamId: string, nodeId: string) : Promise<ISynchronizedArray> {
+        return this.dataChannelStorage.get(streamId, nodeId).then((dataChannel: IDataChannel) => {
+            var synchronizedArray = new SynchronizedArray(dataChannel);
+            return synchronizedArray.initialize().then(() => {
+                return synchronizedArray;
+            });
+        });
     }
 }
 
-streamsClientModule.service('streamsDataStructures', ['$q', 'streamsCommunication', DataStructuresService]);
+streamsClientModule.service('streamsDataStructures', ['streamsCommunication', DataStructuresService]);
