@@ -125,15 +125,8 @@
       "files": [
         { "src": "build/streams-client.js", "dest": "release/streams-client.js" }
       ],
-      "modules": {
-        "angular": "angular",
-        "angular.animate": "",
-        "angular.translate": "",
-        "angular.messages": "",
-        "angular.material": "",
-        "angular.aria": "",
-        "angular.touch": ""
-      }
+      "modules": {},
+      "returnValue": "StreamsClient"
     }
   },
   "karma": {

@@ -14,6 +14,10 @@ class DataStructuresService implements IDataStructuresService {
         this.dataChannelStorage = new DataChannelStorage(communicationService);
     }
 
+    checkForUpdates() : Promise<void> {
+        return this.dataChannelStorage.checkForUpdates();
+    }
+
     getObject(streamId: string, nodeId: string) : Promise<ISynchronizedObject> {
         return this.dataChannelStorage.get(streamId, nodeId).then((dataChannel: IDataChannel) => {
             var synchronizedObject = new SynchronizedObject(dataChannel);
@@ -41,5 +45,3 @@ class DataStructuresService implements IDataStructuresService {
         });
     }
 }
-
-streamsClientModule.service('streamsDataStructures', ['streamsCommunication', DataStructuresService]);

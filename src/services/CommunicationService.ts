@@ -5,25 +5,43 @@
 ///<reference path="../interfaces/IResponse.ts" />
 ///<reference path="../modules/StreamsClientModule.ts" />
 
-import IHttpPromise = angular.IHttpPromise;
-import IHttpPromiseCallbackArg = angular.IHttpPromiseCallbackArg;
-
 class CommunicationService implements ICommunicationService {
 
-    private httpService: ng.IHttpService;
-    private qService: ng.IQService;
     private configuration: IConfiguration;
 
-    constructor(httpService: ng.IHttpService, qService: ng.IQService, configuration: IConfiguration) {
+    constructor(configuration: IConfiguration) {
 
-        this.httpService = httpService;
-        this.qService = qService;
         this.configuration = configuration;
     }
 
-    private sendRequests(requests: IRequest[]): Promise<IResponse[]> {
+    protected sendRequests(requests: IRequest[]): Promise<IResponse[]> {
 
-        return <Promise<IResponse[]>> this.httpService.post('/' + this.configuration.ConnectionPath, requests);
+        return new Promise<IResponse[]>((resolve, reject) => {
+
+            var xhr = new XMLHttpRequest();
+
+            xhr.open("POST", '/' + this.configuration.ConnectionPath);
+            xhr.setRequestHeader("Content-Type", "application/json");
+
+            xhr.onreadystatechange = () => {
+
+                if (xhr.readyState !== XMLHttpRequest.DONE) {
+                    return;
+                }
+                if (xhr.status !== 200) {
+                    reject(xhr.statusText);
+                }
+                resolve(JSON.parse(xhr.responseText));
+            };
+
+            xhr.send(JSON.stringify(requests));
+        });
+    }
+
+    private static getReject<T>() {
+        return new Promise<T>((resolve, reject) => {
+            reject();
+        });
     }
 
     getIds(streamId: string, nodeId: string, filter:any, options:IQueryOptions) : Promise<string[]> {
@@ -34,9 +52,9 @@ class CommunicationService implements ICommunicationService {
             filter: filter,
             options: options,
             streamId: streamId
-        }]).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
-            return response.data && response.data.length === 1 && response.data[0].ids ?
-                response.data[0].ids : this.qService.reject();
+        }]).then((response: IResponse[]) => {
+            return response && response.length === 1 && response[0].ids ?
+                response[0].ids : CommunicationService.getReject();
         });
     }
 
@@ -47,8 +65,8 @@ class CommunicationService implements ICommunicationService {
             id: id,
             nodeId: nodeId,
             streamId: streamId
-        }]).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
-            return response.data && response.data.length === 1 ? response.data[0].record : this.qService.reject();
+        }]).then((response: IResponse[]) => {
+            return response && response.length === 1 ? response[0].record : CommunicationService.getReject();
         });
     }
 
@@ -65,13 +83,13 @@ class CommunicationService implements ICommunicationService {
             });
         }
 
-        return this.sendRequests(requests).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
+        return this.sendRequests(requests).then((response: IResponse[]) => {
 
             var records: IRecord[] = [];
 
-            for (var i = 0; i < response.data.length; i++) {
-                if (response.data[i].record) {
-                    records.push(response.data[i].record);
+            for (var i = 0; i < response.length; i++) {
+                if (response[i].record) {
+                    records.push(response[i].record);
                 }
             }
 
@@ -93,13 +111,13 @@ class CommunicationService implements ICommunicationService {
             });
         }
 
-        return this.sendRequests(requests).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
+        return this.sendRequests(requests).then((response: IResponse[]) => {
 
             var records: IRecord[] = [];
 
-            for (var i = 0; i < response.data.length; i++) {
-                if (response.data[i].record) {
-                    records.push(response.data[i].record);
+            for (var i = 0; i < response.length; i++) {
+                if (response[i].record) {
+                    records.push(response[i].record);
                 }
             }
 
@@ -115,9 +133,9 @@ class CommunicationService implements ICommunicationService {
             nodeId: nodeId,
             echo: echo,
             streamId: streamId
-        }]).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
-            return response.data && response.data.length === 1 && response.data[0].record ?
-                response.data[0].record : this.qService.reject();
+        }]).then((response: IResponse[]) => {
+            return response && response.length === 1 && response[0].record ?
+                response[0].record : CommunicationService.getReject();
         });
     }
 
@@ -128,9 +146,9 @@ class CommunicationService implements ICommunicationService {
             record: record,
             nodeId: nodeId,
             streamId: streamId
-        }]).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
-            return response.data && response.data.length === 1 || response.data[0].record ?
-                response.data[0].record : this.qService.reject();
+        }]).then((response: IResponse[]) => {
+            return response && response.length === 1 || response[0].record ?
+                response[0].record : CommunicationService.getReject();
         });
     }
 
@@ -141,9 +159,9 @@ class CommunicationService implements ICommunicationService {
             id: id,
             nodeId: nodeId,
             streamId: streamId
-        }]).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
-            if (!response.data || response.data.length !== 1) {
-                return this.qService.reject();
+        }]).then((response: IResponse[]) => {
+            if (!response || response.length !== 1) {
+                return CommunicationService.getReject<void>();
             }
         });
     }
@@ -154,8 +172,8 @@ class CommunicationService implements ICommunicationService {
             command: Constants.COMMAND_VERSION,
             streamId: streamId,
             nodeId: nodeId
-        }]).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
-            return response.data && response.data.length === 1 ? response.data[0].version : this.qService.reject();
+        }]).then((response: IResponse[]) => {
+            return response && response.length === 1 ? response[0].version : CommunicationService.getReject();
         });
     }
 
@@ -166,8 +184,8 @@ class CommunicationService implements ICommunicationService {
             version: version,
             streamId: streamId,
             nodeId: nodeId
-        }]).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
-            return response.data && response.data.length === 1 ? response.data[0].changes : this.qService.reject();
+        }]).then((response: IResponse[]) => {
+            return response && response.length === 1 ? response[0].changes : CommunicationService.getReject();
         });
     }
 
@@ -184,19 +202,19 @@ class CommunicationService implements ICommunicationService {
             });
         }
 
-        return this.sendRequests(requests).then((response: IHttpPromiseCallbackArg<IResponse[]>) => {
+        return this.sendRequests(requests).then((response: IResponse[]) => {
 
-            if (!response.data) {
-                return this.qService.reject();
+            if (!response) {
+                return CommunicationService.getReject();
             }
 
             var responses: IUpdates[] = [];
 
-            for (var i = 0; i < response.data.length; i++) {
+            for (var i = 0; i < response.length; i++) {
                 responses.push(<IUpdates>{
-                    streamId: response.data[i].streamId,
-                    updates: response.data[i].changes,
-                    nodeId: response.data[i].nodeId
+                    streamId: response[i].streamId,
+                    updates: response[i].changes,
+                    nodeId: response[i].nodeId
                 });
             }
 
@@ -204,5 +222,3 @@ class CommunicationService implements ICommunicationService {
         });
     }
 }
-
-streamsClientModule.service('streamsCommunication', ['$http', '$q', Constants.CONFIGURATION, CommunicationService]);

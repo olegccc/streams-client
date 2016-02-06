@@ -1,4 +1,5 @@
-(function() { function ___f$(angular) {var Constants = (function () {
+(function() { function ___f$() {
+var Constants = (function () {
     function Constants() {
     }
     Constants.COMMAND_IDS = "ids";
@@ -38,11 +39,6 @@
 ///<reference path='IUpdate.ts'/>
 ///<reference path="IDestroyable.ts" />
 ///<reference path="IUpdate.ts" />
-///<reference path="../interfaces/Constants.ts" />
-var streamsClientModule = angular.module('streams-client', []);
-streamsClientModule.constant(Constants.CONFIGURATION, {
-    ConnectionPath: "streams"
-});
 ///<reference path="../interfaces/ICommunicationService.ts" />
 ///<reference path="../interfaces/IConfiguration.ts" />
 ///<reference path="../interfaces/Constants.ts" />
@@ -50,16 +46,33 @@ streamsClientModule.constant(Constants.CONFIGURATION, {
 ///<reference path="../interfaces/IResponse.ts" />
 ///<reference path="../modules/StreamsClientModule.ts" />
 var CommunicationService = (function () {
-    function CommunicationService(httpService, qService, configuration) {
-        this.httpService = httpService;
-        this.qService = qService;
+    function CommunicationService(configuration) {
         this.configuration = configuration;
     }
     CommunicationService.prototype.sendRequests = function (requests) {
-        return this.httpService.post('/' + this.configuration.ConnectionPath, requests);
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", '/' + _this.configuration.ConnectionPath);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState !== XMLHttpRequest.DONE) {
+                    return;
+                }
+                if (xhr.status !== 200) {
+                    reject(xhr.statusText);
+                }
+                resolve(JSON.parse(xhr.responseText));
+            };
+            xhr.send(JSON.stringify(requests));
+        });
+    };
+    CommunicationService.getReject = function () {
+        return new Promise(function (resolve, reject) {
+            reject();
+        });
     };
     CommunicationService.prototype.getIds = function (streamId, nodeId, filter, options) {
-        var _this = this;
         return this.sendRequests([{
                 command: Constants.COMMAND_IDS,
                 nodeId: nodeId,
@@ -67,19 +80,18 @@ var CommunicationService = (function () {
                 options: options,
                 streamId: streamId
             }]).then(function (response) {
-            return response.data && response.data.length === 1 && response.data[0].ids ?
-                response.data[0].ids : _this.qService.reject();
+            return response && response.length === 1 && response[0].ids ?
+                response[0].ids : CommunicationService.getReject();
         });
     };
     CommunicationService.prototype.readRecord = function (streamId, nodeId, id) {
-        var _this = this;
         return this.sendRequests([{
                 command: Constants.COMMAND_READ,
                 id: id,
                 nodeId: nodeId,
                 streamId: streamId
             }]).then(function (response) {
-            return response.data && response.data.length === 1 ? response.data[0].record : _this.qService.reject();
+            return response && response.length === 1 ? response[0].record : CommunicationService.getReject();
         });
     };
     CommunicationService.prototype.readRecords = function (streamId, nodeId, ids) {
@@ -94,9 +106,9 @@ var CommunicationService = (function () {
         }
         return this.sendRequests(requests).then(function (response) {
             var records = [];
-            for (var i = 0; i < response.data.length; i++) {
-                if (response.data[i].record) {
-                    records.push(response.data[i].record);
+            for (var i = 0; i < response.length; i++) {
+                if (response[i].record) {
+                    records.push(response[i].record);
                 }
             }
             return records;
@@ -116,16 +128,15 @@ var CommunicationService = (function () {
         }
         return this.sendRequests(requests).then(function (response) {
             var records = [];
-            for (var i = 0; i < response.data.length; i++) {
-                if (response.data[i].record) {
-                    records.push(response.data[i].record);
+            for (var i = 0; i < response.length; i++) {
+                if (response[i].record) {
+                    records.push(response[i].record);
                 }
             }
             return records;
         });
     };
     CommunicationService.prototype.updateRecord = function (streamId, nodeId, record, echo) {
-        var _this = this;
         return this.sendRequests([{
                 command: Constants.COMMAND_UPDATE,
                 record: record,
@@ -133,58 +144,53 @@ var CommunicationService = (function () {
                 echo: echo,
                 streamId: streamId
             }]).then(function (response) {
-            return response.data && response.data.length === 1 && response.data[0].record ?
-                response.data[0].record : _this.qService.reject();
+            return response && response.length === 1 && response[0].record ?
+                response[0].record : CommunicationService.getReject();
         });
     };
     CommunicationService.prototype.createRecord = function (streamId, nodeId, record) {
-        var _this = this;
         return this.sendRequests([{
                 command: Constants.COMMAND_CREATE,
                 record: record,
                 nodeId: nodeId,
                 streamId: streamId
             }]).then(function (response) {
-            return response.data && response.data.length === 1 || response.data[0].record ?
-                response.data[0].record : _this.qService.reject();
+            return response && response.length === 1 || response[0].record ?
+                response[0].record : CommunicationService.getReject();
         });
     };
     CommunicationService.prototype.deleteRecord = function (streamId, nodeId, id) {
-        var _this = this;
         return this.sendRequests([{
                 command: Constants.COMMAND_DELETE,
                 id: id,
                 nodeId: nodeId,
                 streamId: streamId
             }]).then(function (response) {
-            if (!response.data || response.data.length !== 1) {
-                return _this.qService.reject();
+            if (!response || response.length !== 1) {
+                return CommunicationService.getReject();
             }
         });
     };
     CommunicationService.prototype.getVersion = function (streamId, nodeId) {
-        var _this = this;
         return this.sendRequests([{
                 command: Constants.COMMAND_VERSION,
                 streamId: streamId,
                 nodeId: nodeId
             }]).then(function (response) {
-            return response.data && response.data.length === 1 ? response.data[0].version : _this.qService.reject();
+            return response && response.length === 1 ? response[0].version : CommunicationService.getReject();
         });
     };
     CommunicationService.prototype.getOneStreamChanges = function (streamId, nodeId, version) {
-        var _this = this;
         return this.sendRequests([{
                 command: Constants.COMMAND_CHANGES,
                 version: version,
                 streamId: streamId,
                 nodeId: nodeId
             }]).then(function (response) {
-            return response.data && response.data.length === 1 ? response.data[0].changes : _this.qService.reject();
+            return response && response.length === 1 ? response[0].changes : CommunicationService.getReject();
         });
     };
     CommunicationService.prototype.getManyStreamsChanges = function (streamsAndVersions) {
-        var _this = this;
         var requests = [];
         for (var i = 0; i < streamsAndVersions.length; i++) {
             requests.push({
@@ -195,173 +201,21 @@ var CommunicationService = (function () {
             });
         }
         return this.sendRequests(requests).then(function (response) {
-            if (!response.data) {
-                return _this.qService.reject();
+            if (!response) {
+                return CommunicationService.getReject();
             }
             var responses = [];
-            for (var i = 0; i < response.data.length; i++) {
+            for (var i = 0; i < response.length; i++) {
                 responses.push({
-                    streamId: response.data[i].streamId,
-                    updates: response.data[i].changes,
-                    nodeId: response.data[i].nodeId
+                    streamId: response[i].streamId,
+                    updates: response[i].changes,
+                    nodeId: response[i].nodeId
                 });
             }
             return responses;
         });
     };
     return CommunicationService;
-})();
-streamsClientModule.service('streamsCommunication', ['$http', '$q', Constants.CONFIGURATION, CommunicationService]);
-///<reference path="../interfaces/IDataChannel.ts" />
-///<reference path="../interfaces/ICommunicationService.ts" />
-///<reference path="../interfaces/IDataChannelStorage.ts" />
-///<reference path="../interfaces/IDataChannelListener.ts" />
-///<reference path="../interfaces/IQueryOptions.ts" />
-var DataChannel = (function () {
-    function DataChannel(storage, instanceId, streamId, nodeId, version, communicationService) {
-        this.storage = storage;
-        this.instanceId = instanceId;
-        this.streamId = streamId;
-        this.nodeId = nodeId;
-        this.communicationService = communicationService;
-        this.version = version;
-        this.listeners = [];
-    }
-    DataChannel.prototype.getStreamId = function () {
-        return this.streamId;
-    };
-    DataChannel.prototype.getVersion = function () {
-        return this.version;
-    };
-    DataChannel.prototype.getNodeId = function () {
-        return this.nodeId;
-    };
-    DataChannel.prototype.onUpdate = function (type, id, version) {
-        if (version < this.version) {
-            return;
-        }
-        this.version = version;
-        for (var i = 0; i < this.listeners.length; i++) {
-            this.listeners[i].onChange(type, id);
-        }
-    };
-    DataChannel.prototype.initialize = function () {
-        var _this = this;
-        if (this.version) {
-            return new Promise(function (resolve) {
-                resolve();
-            });
-        }
-        return this.communicationService.getVersion(this.streamId, this.nodeId).then(function (version) {
-            _this.version = version;
-        });
-    };
-    DataChannel.prototype.addListener = function (listener) {
-        this.listeners.push(listener);
-    };
-    DataChannel.prototype.removeListener = function (listener) {
-        for (var i = 0; i < this.listeners.length; i++) {
-            if (this.listeners[i] === listener) {
-                this.listeners.splice(i, 1);
-                break;
-            }
-        }
-    };
-    DataChannel.prototype.close = function () {
-        this.storage.close(this.instanceId);
-    };
-    DataChannel.prototype.getIds = function (filter, options) {
-        return this.communicationService.getIds(this.streamId, this.nodeId, filter, options);
-    };
-    DataChannel.prototype.read = function (id) {
-        return this.communicationService.readRecord(this.streamId, this.nodeId, id);
-    };
-    DataChannel.prototype.readMany = function (ids) {
-        return this.communicationService.readRecords(this.streamId, this.nodeId, ids);
-    };
-    DataChannel.prototype.update = function (record, echo) {
-        return this.communicationService.updateRecord(this.streamId, this.nodeId, record, echo);
-    };
-    DataChannel.prototype.updateMany = function (records, echo) {
-        return this.communicationService.updateRecords(this.streamId, this.nodeId, records, echo);
-    };
-    DataChannel.prototype.create = function (record, echo) {
-        return this.communicationService.createRecord(this.streamId, this.nodeId, record, echo);
-    };
-    DataChannel.prototype.remove = function (id) {
-        return this.communicationService.deleteRecord(this.streamId, this.nodeId, id);
-    };
-    return DataChannel;
-})();
-///<reference path="../interfaces/ICommunicationService.ts" />
-///<reference path="../interfaces/IDataChannelStorage.ts" />
-///<reference path="../interfaces/IDataChannel.ts" />
-///<reference path="../interfaces/IUpdates.ts" />
-///<reference path="../structure/DataChannel.ts" />
-var DataChannelStorage = (function () {
-    function DataChannelStorage(communicationService) {
-        this.communicationService = communicationService;
-        this.tempCounter = 0;
-        this.channels = {};
-    }
-    DataChannelStorage.prototype.get = function (streamId, nodeId) {
-        this.tempCounter++;
-        var instanceId = this.tempCounter.toString();
-        var keys = Object.keys(this.channels);
-        var version = null;
-        for (var i = 0; i < keys.length; i++) {
-            var channel = this.channels[keys[i]];
-            if (channel.getNodeId() === nodeId && channel.getStreamId() === streamId) {
-                version = channel.getVersion();
-                break;
-            }
-        }
-        var dataChannel = new DataChannel(this, instanceId, streamId, nodeId, version, this.communicationService);
-        this.channels[instanceId] = dataChannel;
-        return new Promise(function (resolve) {
-            dataChannel.initialize().then(function () {
-                resolve(dataChannel);
-            });
-        });
-    };
-    DataChannelStorage.prototype.close = function (instanceId) {
-        delete this.channels[instanceId];
-    };
-    DataChannelStorage.prototype.checkForUpdates = function () {
-        var requests = [];
-        var keys = Object.keys(this.channels);
-        var channels = {};
-        for (var i = 0; i < keys.length; i++) {
-            var channel = this.channels[keys[i]];
-            var request = {
-                streamId: channel.getStreamId(),
-                version: channel.getVersion(),
-                nodeId: channel.getNodeId()
-            };
-            var key = request.streamId + ':' + request.nodeId;
-            if (!channels[key]) {
-                channels[key] = [];
-                requests.push(request);
-            }
-            channels[key].push(channel);
-        }
-        return this.communicationService.getManyStreamsChanges(requests).then(function (updates) {
-            for (var i = 0; i < updates.length; i++) {
-                var update = updates[i];
-                var key = update.streamId + ':' + update.nodeId;
-                var updateChannels = channels[key];
-                if (updateChannels) {
-                    for (var j = 0; j < update.updates.length; j++) {
-                        var change = update.updates[j];
-                        for (var k = 0; k < updateChannels.length; k++) {
-                            updateChannels[k].onUpdate(change.type, change.id, change.version);
-                        }
-                    }
-                }
-            }
-        });
-    };
-    return DataChannelStorage;
 })();
 ///<reference path="../interfaces/ISynchronizedObject.ts" />
 ///<reference path="../interfaces/IStreamObject.ts" />
@@ -808,6 +662,9 @@ var DataStructuresService = (function () {
     function DataStructuresService(communicationService) {
         this.dataChannelStorage = new DataChannelStorage(communicationService);
     }
+    DataStructuresService.prototype.checkForUpdates = function () {
+        return this.dataChannelStorage.checkForUpdates();
+    };
     DataStructuresService.prototype.getObject = function (streamId, nodeId) {
         return this.dataChannelStorage.get(streamId, nodeId).then(function (dataChannel) {
             var synchronizedObject = new SynchronizedObject(dataChannel);
@@ -834,8 +691,168 @@ var DataStructuresService = (function () {
     };
     return DataStructuresService;
 })();
-streamsClientModule.service('streamsDataStructures', ['streamsCommunication', DataStructuresService]);
+///<reference path="../interfaces/Constants.ts" />
+///<reference path="../services/CommunicationService.ts" />
+///<reference path="../services/DataStructuresService.ts" />
+var StreamsClient = function (configuration) {
+    var communicationService = new CommunicationService(configuration);
+    return {
+        structures: new DataStructuresService(communicationService),
+        communication: communicationService
+    };
+};
+///<reference path="../interfaces/IDataChannel.ts" />
+///<reference path="../interfaces/ICommunicationService.ts" />
+///<reference path="../interfaces/IDataChannelStorage.ts" />
+///<reference path="../interfaces/IDataChannelListener.ts" />
+///<reference path="../interfaces/IQueryOptions.ts" />
+var DataChannel = (function () {
+    function DataChannel(storage, instanceId, streamId, nodeId, version, communicationService) {
+        this.storage = storage;
+        this.instanceId = instanceId;
+        this.streamId = streamId;
+        this.nodeId = nodeId;
+        this.communicationService = communicationService;
+        this.version = version;
+        this.listeners = [];
+    }
+    DataChannel.prototype.getStreamId = function () {
+        return this.streamId;
+    };
+    DataChannel.prototype.getVersion = function () {
+        return this.version;
+    };
+    DataChannel.prototype.getNodeId = function () {
+        return this.nodeId;
+    };
+    DataChannel.prototype.onUpdate = function (type, id, version) {
+        if (version < this.version) {
+            return;
+        }
+        this.version = version;
+        for (var i = 0; i < this.listeners.length; i++) {
+            this.listeners[i].onChange(type, id);
+        }
+    };
+    DataChannel.prototype.initialize = function () {
+        var _this = this;
+        if (this.version) {
+            return new Promise(function (resolve) {
+                resolve();
+            });
+        }
+        return this.communicationService.getVersion(this.streamId, this.nodeId).then(function (version) {
+            _this.version = version;
+        });
+    };
+    DataChannel.prototype.addListener = function (listener) {
+        this.listeners.push(listener);
+    };
+    DataChannel.prototype.removeListener = function (listener) {
+        for (var i = 0; i < this.listeners.length; i++) {
+            if (this.listeners[i] === listener) {
+                this.listeners.splice(i, 1);
+                break;
+            }
+        }
+    };
+    DataChannel.prototype.close = function () {
+        this.storage.close(this.instanceId);
+    };
+    DataChannel.prototype.getIds = function (filter, options) {
+        return this.communicationService.getIds(this.streamId, this.nodeId, filter, options);
+    };
+    DataChannel.prototype.read = function (id) {
+        return this.communicationService.readRecord(this.streamId, this.nodeId, id);
+    };
+    DataChannel.prototype.readMany = function (ids) {
+        return this.communicationService.readRecords(this.streamId, this.nodeId, ids);
+    };
+    DataChannel.prototype.update = function (record, echo) {
+        return this.communicationService.updateRecord(this.streamId, this.nodeId, record, echo);
+    };
+    DataChannel.prototype.updateMany = function (records, echo) {
+        return this.communicationService.updateRecords(this.streamId, this.nodeId, records, echo);
+    };
+    DataChannel.prototype.create = function (record, echo) {
+        return this.communicationService.createRecord(this.streamId, this.nodeId, record, echo);
+    };
+    DataChannel.prototype.remove = function (id) {
+        return this.communicationService.deleteRecord(this.streamId, this.nodeId, id);
+    };
+    return DataChannel;
+})();
+///<reference path="../interfaces/ICommunicationService.ts" />
+///<reference path="../interfaces/IDataChannelStorage.ts" />
+///<reference path="../interfaces/IDataChannel.ts" />
+///<reference path="../interfaces/IUpdates.ts" />
+///<reference path="../structure/DataChannel.ts" />
+var DataChannelStorage = (function () {
+    function DataChannelStorage(communicationService) {
+        this.communicationService = communicationService;
+        this.tempCounter = 0;
+        this.channels = {};
+    }
+    DataChannelStorage.prototype.get = function (streamId, nodeId) {
+        this.tempCounter++;
+        var instanceId = this.tempCounter.toString();
+        var keys = Object.keys(this.channels);
+        var version = null;
+        for (var i = 0; i < keys.length; i++) {
+            var channel = this.channels[keys[i]];
+            if (channel.getNodeId() === nodeId && channel.getStreamId() === streamId) {
+                version = channel.getVersion();
+                break;
+            }
+        }
+        var dataChannel = new DataChannel(this, instanceId, streamId, nodeId, version, this.communicationService);
+        this.channels[instanceId] = dataChannel;
+        return new Promise(function (resolve) {
+            dataChannel.initialize().then(function () {
+                resolve(dataChannel);
+            });
+        });
+    };
+    DataChannelStorage.prototype.close = function (instanceId) {
+        delete this.channels[instanceId];
+    };
+    DataChannelStorage.prototype.checkForUpdates = function () {
+        var requests = [];
+        var keys = Object.keys(this.channels);
+        var channels = {};
+        for (var i = 0; i < keys.length; i++) {
+            var channel = this.channels[keys[i]];
+            var request = {
+                streamId: channel.getStreamId(),
+                version: channel.getVersion(),
+                nodeId: channel.getNodeId()
+            };
+            var key = request.streamId + ':' + request.nodeId;
+            if (!channels[key]) {
+                channels[key] = [];
+                requests.push(request);
+            }
+            channels[key].push(channel);
+        }
+        return this.communicationService.getManyStreamsChanges(requests).then(function (updates) {
+            for (var i = 0; i < updates.length; i++) {
+                var update = updates[i];
+                var key = update.streamId + ':' + update.nodeId;
+                var updateChannels = channels[key];
+                if (updateChannels) {
+                    for (var j = 0; j < update.updates.length; j++) {
+                        var change = update.updates[j];
+                        for (var k = 0; k < updateChannels.length; k++) {
+                            updateChannels[k].onUpdate(change.type, change.id, change.version);
+                        }
+                    }
+                }
+            }
+        });
+    };
+    return DataChannelStorage;
+})();
 var templates = {
     "index.jade": ""
 };
-} if (typeof define === 'function' && define.amd) { define(["angular","angular.animate","angular.translate","angular.messages","angular.material","angular.aria","angular.touch"], function ($_v0,$_v1,$_v2,$_v3,$_v4,$_v5,$_v6) { ___f$($_v0); }); } else if (typeof exports === 'object') { var $_v0 = require('angular');require('angular.animate');require('angular.translate');require('angular.messages');require('angular.material');require('angular.aria');require('angular.touch'); module.exports = ___f$($_v0); } else  { ___f$(window['angular']); } })();
+return StreamsClient;} if (typeof define === 'function' && define.amd) { define([], function () { return ___f$(); }); } else if (typeof exports === 'object') {  module.exports = ___f$(); } else  { window['StreamsClient'] = ___f$(); } })();

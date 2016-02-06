@@ -3,16 +3,22 @@ module.exports = function (grunt) {
     grunt.registerMultiTask('wrap-module', function() {
 
         var options = {
-            functionName: "___f$"
+            functionName: "___f$",
+            returnValue: ""
         };
 
         var footerTemplate = "} if (typeof define === 'function' && define.amd) { define(<%= modulesArray %>, " +
-            "function (<%= moduleVariables %>) { <%= functionName %>(<%= requiredVariables %>); }); } " +
+            "function (<%= moduleVariables %>) { return <%= functionName %>(<%= requiredVariables %>); }); } " +
             "else if (typeof exports === 'object') { <%= namedCjsModules %><%= unnamedCjsModules %> " +
             "module.exports = <%= functionName %>(<%= requiredVariables %>); } else " +
-            " { <%= functionName %>(<%= globalWindowVariables %>); } })();";
+            " { <%= returnValue %><%= functionName %>(<%= globalWindowVariables %>); } })();";
 
-        var headerTemplate = "(function() { function <%= functionName %>(<%= globalVariables %>) {";
+        if (this.data.returnValue) {
+            footerTemplate = "return " + this.data.returnValue + ";" + footerTemplate;
+            options.returnValue = "window['" + this.data.returnValue + "'] = ";
+        }
+
+        var headerTemplate = "(function() { function <%= functionName %>(<%= globalVariables %>) {\n";
 
         var keys = Object.keys(this.data.modules);
         var variables = [];

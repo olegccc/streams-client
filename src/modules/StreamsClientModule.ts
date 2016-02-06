@@ -1,8 +1,13 @@
 ///<reference path="../interfaces/Constants.ts" />
+///<reference path="../services/CommunicationService.ts" />
+///<reference path="../services/DataStructuresService.ts" />
 
-var streamsClientModule = angular.module('streams-client', [
-]);
+var StreamsClient = function(configuration: IConfiguration) {
 
-streamsClientModule.constant(Constants.CONFIGURATION, <IConfiguration> {
-    ConnectionPath: "streams"
-});
+    var communicationService = new CommunicationService(configuration);
+
+    return {
+        structures: new DataStructuresService(communicationService),
+        communication: communicationService
+    }
+};
